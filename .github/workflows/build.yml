@@ -882,7 +882,7 @@ jobs:
 
       - name: Build Debug APK
         run: |
-          gradle wrapper --gradle-version 8.5 --no-daemon
+          gradle wrapper --gradle-version 8.7 --no-daemon
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
