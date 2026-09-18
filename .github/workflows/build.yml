@@ -1,0 +1,890 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write project files
+        run: |
+          mkdir -p app/src/main/java/com/ar/engineering/water
+          mkdir -p app/src/main/java/com/ar/engineering/electric
+          mkdir -p app/src/main/res/values app/src/main/res/layout app/src/main/res/drawable
+          mkdir -p app/src/main/res/menu app/src/main/res/xml
+          mkdir -p gradle/wrapper
+
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "EngCalc"
+          include ':app'
+          EOF
+
+          cat > build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.2.0' apply false
+              id 'org.jetbrains.kotlin.android' version '1.9.20' apply false
+          }
+          EOF
+
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+          android.nonTransitiveRClass=true
+          EOF
+
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
+          android {
+              namespace 'com.ar.engineering'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.ar.engineering"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildFeatures { viewBinding true }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = '17' }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                  }
+              }
+          }
+          dependencies {
+              implementation 'androidx.core:core-ktx:1.12.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'androidx.fragment:fragment-ktx:1.6.2'
+          }
+          EOF
+
+          cat > app/proguard-rules.pro << 'EOF'
+          # empty
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="true"
+                  android:label="@string/app_name"
+                  android:theme="@style/Theme.EngCalc"
+                  android:supportsRtl="true">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <provider
+                      android:name="androidx.core.content.FileProvider"
+                      android:authorities="${applicationId}.fileprovider"
+                      android:exported="false"
+                      android:grantUriPermissions="true">
+                      <meta-data
+                          android:name="android.support.FILE_PROVIDER_PATHS"
+                          android:resource="@xml/file_paths"/>
+                  </provider>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <resources>
+              <string name="app_name">Инженерные расчёты</string>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="bg">#0C0C0D</color>
+              <color name="panel">#17171A</color>
+              <color name="panel2">#1E1E22</color>
+              <color name="border">#302F2B</color>
+              <color name="ink">#EFECE5</color>
+              <color name="ink2">#8F8B81</color>
+              <color name="accent">#C6A06A</color>
+              <color name="accent2">#D9B87F</color>
+              <color name="danger">#E0685C</color>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/themes.xml << 'EOF'
+          <resources>
+              <style name="Theme.EngCalc" parent="Theme.MaterialComponents.NoActionBar">
+                  <item name="colorPrimary">@color/accent</item>
+                  <item name="colorPrimaryVariant">@color/accent2</item>
+                  <item name="colorOnPrimary">#161310</item>
+                  <item name="android:colorBackground">@color/bg</item>
+                  <item name="android:windowBackground">@color/bg</item>
+                  <item name="android:textColorPrimary">@color/ink</item>
+                  <item name="android:textColorSecondary">@color/ink2</item>
+                  <item name="colorSurface">@color/panel</item>
+                  <item name="android:statusBarColor">@color/bg</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/drawable/card_bg.xml << 'EOF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/panel"/>
+              <corners android:radius="8dp"/>
+              <stroke android:width="1dp" android:color="@color/border"/>
+          </shape>
+          EOF
+
+          cat > app/src/main/res/drawable/input_bg.xml << 'EOF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/panel2"/>
+              <corners android:radius="6dp"/>
+              <stroke android:width="1dp" android:color="@color/border"/>
+          </shape>
+          EOF
+
+          cat > app/src/main/res/drawable/btn_primary.xml << 'EOF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@color/accent"/>
+              <corners android:radius="7dp"/>
+          </shape>
+          EOF
+
+          cat > app/src/main/res/drawable/btn_secondary.xml << 'EOF'
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="@android:color/transparent"/>
+              <corners android:radius="7dp"/>
+              <stroke android:width="1dp" android:color="@color/accent"/>
+          </shape>
+          EOF
+
+          cat > app/src/main/res/menu/bottom_nav.xml << 'EOF'
+          <menu xmlns:android="http://schemas.android.com/apk/res/android">
+              <item android:id="@+id/nav_water" android:title="Вода" android:icon="@android:drawable/ic_menu_agenda"/>
+              <item android:id="@+id/nav_electric" android:title="Электрика" android:icon="@android:drawable/ic_menu_manage"/>
+          </menu>
+          EOF
+
+          cat > app/src/main/res/xml/file_paths.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths>
+              <cache-path name="cache" path="."/>
+              <files-path name="files" path="."/>
+          </paths>
+          EOF
+
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:orientation="vertical"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="@color/bg">
+              <FrameLayout android:id="@+id/container"
+                  android:layout_width="match_parent" android:layout_height="0dp"
+                  android:layout_weight="1"/>
+              <com.google.android.material.bottomnavigation.BottomNavigationView
+                  android:id="@+id/bottomNav"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"
+                  android:background="@color/panel"
+                  app:menu="@menu/bottom_nav"/>
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/res/layout/item_consumer_card.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical" android:background="@drawable/card_bg"
+              android:padding="10dp" android:layout_marginTop="6dp"
+              android:layout_width="match_parent" android:layout_height="wrap_content">
+              <LinearLayout android:orientation="horizontal"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <TextView android:id="@+id/txtIdx" android:textColor="@color/ink2" android:textSize="11sp"
+                      android:layout_weight="1" android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  <Button android:id="@+id/btnRemove" android:text="✕" android:textColor="@color/ink2"
+                      android:background="@android:color/transparent" android:minWidth="0dp"
+                      android:padding="4dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+              </LinearLayout>
+              <TextView android:id="@+id/txtTitle" android:textColor="@color/ink" android:textSize="12sp"
+                  android:textStyle="bold" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              <TextView android:id="@+id/txtUnit" android:textColor="@color/ink2" android:textSize="10sp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              <Spinner android:id="@+id/spPreset" android:layout_marginTop="4dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              <EditText android:id="@+id/edQty" android:inputType="numberDecimal"
+                  android:layout_marginTop="4dp" android:background="@drawable/input_bg"
+                  android:textColor="@color/ink" android:hint="Количество"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              <LinearLayout android:id="@+id/dishBox" android:orientation="vertical" android:visibility="gone"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <Spinner android:id="@+id/spDishType"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                  <LinearLayout android:orientation="horizontal"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <EditText android:id="@+id/edDishN" android:inputType="numberDecimal" android:hint="мест"
+                          android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <EditText android:id="@+id/edDishT" android:inputType="numberDecimal" android:hint="Т, ч"
+                          android:layout_weight="1" android:layout_marginStart="4dp" android:background="@drawable/input_bg"
+                          android:textColor="@color/ink" android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <EditText android:id="@+id/edDishY" android:inputType="numberDecimal" android:hint="y"
+                          android:layout_weight="1" android:layout_marginStart="4dp" android:background="@drawable/input_bg"
+                          android:textColor="@color/ink" android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  </LinearLayout>
+              </LinearLayout>
+              <TextView android:id="@+id/txtContrib" android:textColor="@color/accent" android:textSize="11sp"
+                  android:layout_marginTop="4dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"/>
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/res/layout/item_electric_card.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical" android:background="@drawable/card_bg"
+              android:padding="10dp" android:layout_marginTop="6dp"
+              android:layout_width="match_parent" android:layout_height="wrap_content">
+              <LinearLayout android:orientation="horizontal"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <TextView android:id="@+id/txtIdx" android:textColor="@color/ink2"
+                      android:textSize="11sp" android:layout_weight="1"
+                      android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  <Button android:id="@+id/btnRemove" android:text="✕" android:textColor="@color/ink2"
+                      android:background="@android:color/transparent" android:minWidth="0dp"
+                      android:padding="4dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+              </LinearLayout>
+              <TextView android:id="@+id/txtTitle" android:textColor="@color/ink"
+                  android:textStyle="bold" android:textSize="13sp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              <LinearLayout android:id="@+id/boxApt" android:orientation="vertical" android:visibility="gone"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <EditText android:id="@+id/edAptN" android:inputType="numberDecimal" android:hint="Число квартир"
+                          android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <Spinner android:id="@+id/spAptRegion" android:layout_weight="1" android:layout_marginStart="4dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  </LinearLayout>
+                  <Spinner android:id="@+id/spAptStove" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              </LinearLayout>
+              <LinearLayout android:id="@+id/boxElite" android:orientation="horizontal" android:visibility="gone"
+                  android:layout_marginTop="4dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <EditText android:id="@+id/edEliteN" android:inputType="numberDecimal" android:hint="Квартир"
+                      android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                      android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  <EditText android:id="@+id/edEliteP" android:inputType="numberDecimal" android:hint="Pзаявл, кВт"
+                      android:layout_weight="1" android:layout_marginStart="4dp"
+                      android:background="@drawable/input_bg" android:textColor="@color/ink"
+                      android:layout_width="0dp" android:layout_height="wrap_content"/>
+              </LinearLayout>
+              <LinearLayout android:id="@+id/boxLift" android:orientation="vertical" android:visibility="gone"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <CheckBox android:id="@+id/cbLiftTall" android:text="Здание 12 этажей и выше"
+                      android:textColor="@color/ink" android:textSize="12sp"
+                      android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                  <LinearLayout android:id="@+id/liftList" android:orientation="vertical"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                  <Button android:id="@+id/btnAddLift" android:text="+ Ещё лифт"
+                      android:background="@drawable/btn_secondary" android:textColor="@color/accent"
+                      android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              </LinearLayout>
+              <LinearLayout android:id="@+id/boxBuilding" android:orientation="vertical" android:visibility="gone"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <Spinner android:id="@+id/spBtype" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <EditText android:id="@+id/edBArea" android:inputType="numberDecimal" android:hint="Площадь, м²"
+                          android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <EditText android:id="@+id/edBW" android:inputType="numberDecimal" android:hint="Вт/м²"
+                          android:layout_weight="1" android:layout_marginStart="4dp"
+                          android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  </LinearLayout>
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <EditText android:id="@+id/edBKc" android:inputType="numberDecimal" android:hint="Kc"
+                          android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <EditText android:id="@+id/edBKz" android:inputType="numberDecimal" android:hint="Kз"
+                          android:layout_weight="1" android:layout_marginStart="4dp"
+                          android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  </LinearLayout>
+              </LinearLayout>
+              <LinearLayout android:id="@+id/boxOther" android:orientation="vertical" android:visibility="gone"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <EditText android:id="@+id/edOtherName" android:hint="Название" android:layout_marginTop="4dp"
+                      android:background="@drawable/input_bg" android:textColor="@color/ink"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <EditText android:id="@+id/edOtherP" android:inputType="numberDecimal" android:hint="Pуст, кВт"
+                          android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <EditText android:id="@+id/edOtherKc" android:inputType="numberDecimal" android:hint="Kc"
+                          android:layout_weight="1" android:layout_marginStart="4dp"
+                          android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  </LinearLayout>
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <EditText android:id="@+id/edOtherKz" android:inputType="numberDecimal" android:hint="Kз"
+                          android:layout_weight="1" android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                      <EditText android:id="@+id/edOtherKn" android:inputType="numberDecimal" android:hint="Kн"
+                          android:layout_weight="1" android:layout_marginStart="4dp"
+                          android:background="@drawable/input_bg" android:textColor="@color/ink"
+                          android:layout_width="0dp" android:layout_height="wrap_content"/>
+                  </LinearLayout>
+              </LinearLayout>
+              <TextView android:id="@+id/txtContrib" android:textColor="@color/accent"
+                  android:textSize="11sp" android:layout_marginTop="4dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content"/>
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/java/com/ar/engineering/MainActivity.kt << 'EOF'
+          package com.ar.engineering
+
+          import android.os.Bundle
+          import androidx.appcompat.app.AppCompatActivity
+          import androidx.fragment.app.Fragment
+          import com.ar.engineering.databinding.ActivityMainBinding
+          import com.ar.engineering.electric.ElectricFragment
+          import com.ar.engineering.water.WaterFragment
+
+          class MainActivity : AppCompatActivity() {
+              private lateinit var b: ActivityMainBinding
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  b = ActivityMainBinding.inflate(layoutInflater)
+                  setContentView(b.root)
+                  if (savedInstanceState == null) show(WaterFragment())
+                  b.bottomNav.setOnItemSelectedListener { item ->
+                      when (item.itemId) {
+                          R.id.nav_water -> { show(WaterFragment()); true }
+                          R.id.nav_electric -> { show(ElectricFragment()); true }
+                          else -> false
+                      }
+                  }
+              }
+              private fun show(f: Fragment) {
+                  supportFragmentManager.beginTransaction().replace(R.id.container, f).commit()
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/ar/engineering/ExportHelper.kt << 'EOF'
+          package com.ar.engineering
+          import android.content.Context
+          import android.content.Intent
+          import android.print.PrintAttributes
+          import android.print.PrintManager
+          import android.webkit.WebView
+          import android.webkit.WebViewClient
+          import android.widget.Toast
+          import androidx.core.content.FileProvider
+          import java.io.File
+          object ExportHelper {
+              fun exportPdf(context: Context, html: String, jobName: String) {
+                  val webView = WebView(context)
+                  webView.webViewClient = object : WebViewClient() {
+                      override fun onPageFinished(view: WebView, url: String) {
+                          val pm = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
+                          val adapter = view.createPrintDocumentAdapter(jobName)
+                          pm.print(jobName, adapter, PrintAttributes.Builder()
+                              .setMediaSize(PrintAttributes.MediaSize.ISO_A4).build())
+                      }
+                  }
+                  webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
+              }
+              fun exportWord(context: Context, html: String, fileName: String) {
+                  try {
+                      val dir = File(context.cacheDir, "reports").apply { mkdirs() }
+                      val file = File(dir, fileName)
+                      file.writeText(html, Charsets.UTF_8)
+                      val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+                      val intent = Intent(Intent.ACTION_SEND).apply {
+                          type = "application/msword"
+                          putExtra(Intent.EXTRA_STREAM, uri)
+                          putExtra(Intent.EXTRA_SUBJECT, fileName)
+                          addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                      }
+                      context.startActivity(Intent.createChooser(intent, "Сохранить отчёт"))
+                  } catch (e: Exception) {
+                      Toast.makeText(context, "Ошибка: " + e.message, Toast.LENGTH_LONG).show()
+                  }
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/ar/engineering/water/WaterCalc.kt << 'EOF'
+          package com.ar.engineering.water
+          import kotlin.math.max
+          import kotlin.math.roundToInt
+          object WaterCalc {
+              private val ALPHA_TABLE = arrayOf(
+                  doubleArrayOf(0.015,0.202),doubleArrayOf(0.02,0.215),doubleArrayOf(0.025,0.226),
+                  doubleArrayOf(0.03,0.237),doubleArrayOf(0.035,0.247),doubleArrayOf(0.04,0.256),
+                  doubleArrayOf(0.045,0.265),doubleArrayOf(0.05,0.273),doubleArrayOf(0.06,0.289),
+                  doubleArrayOf(0.07,0.304),doubleArrayOf(0.08,0.318),doubleArrayOf(0.09,0.331),
+                  doubleArrayOf(0.10,0.343),doubleArrayOf(0.12,0.367),doubleArrayOf(0.14,0.389),
+                  doubleArrayOf(0.16,0.410),doubleArrayOf(0.18,0.430),doubleArrayOf(0.20,0.449),
+                  doubleArrayOf(0.22,0.467),doubleArrayOf(0.24,0.485),doubleArrayOf(0.26,0.502),
+                  doubleArrayOf(0.28,0.518),doubleArrayOf(0.30,0.534),doubleArrayOf(0.34,0.565),
+                  doubleArrayOf(0.40,0.610),doubleArrayOf(0.45,0.645),doubleArrayOf(0.50,0.678),
+                  doubleArrayOf(0.60,0.742),doubleArrayOf(0.70,0.803),doubleArrayOf(0.80,0.860),
+                  doubleArrayOf(0.90,0.916),doubleArrayOf(1.00,0.969),doubleArrayOf(1.20,1.071),
+                  doubleArrayOf(1.40,1.168),doubleArrayOf(1.60,1.261),doubleArrayOf(1.80,1.350),
+                  doubleArrayOf(2.00,1.437),doubleArrayOf(2.5,1.644),doubleArrayOf(3.0,1.840),
+                  doubleArrayOf(3.5,2.029),doubleArrayOf(4.0,2.210),doubleArrayOf(4.5,2.386),
+                  doubleArrayOf(5.0,2.558),doubleArrayOf(5.5,2.726),doubleArrayOf(6.0,2.891),
+                  doubleArrayOf(6.5,3.053),doubleArrayOf(7.0,3.212),doubleArrayOf(7.5,3.369),
+                  doubleArrayOf(8.0,3.524),doubleArrayOf(8.5,3.677),doubleArrayOf(9.0,3.828),
+                  doubleArrayOf(9.5,3.978),doubleArrayOf(10.0,4.126),doubleArrayOf(11.0,4.419),
+                  doubleArrayOf(12.0,4.707),doubleArrayOf(13.0,4.990),doubleArrayOf(14.0,5.270),
+                  doubleArrayOf(15.0,5.547),doubleArrayOf(16.0,5.821),doubleArrayOf(17.0,6.093),
+                  doubleArrayOf(18.0,6.362),doubleArrayOf(19.0,6.629),doubleArrayOf(20.0,6.893),
+                  doubleArrayOf(22.0,7.417),doubleArrayOf(24.0,7.935),doubleArrayOf(25.0,8.192),
+                  doubleArrayOf(26.0,8.447),doubleArrayOf(28.0,8.955),doubleArrayOf(30.0,9.457),
+                  doubleArrayOf(32.0,9.957),doubleArrayOf(34.0,10.45),doubleArrayOf(36.0,10.94),
+                  doubleArrayOf(38.0,11.43),doubleArrayOf(40.0,11.92),doubleArrayOf(45.0,13.13),
+                  doubleArrayOf(50.0,14.32),doubleArrayOf(55.0,15.51),doubleArrayOf(60.0,16.69),
+                  doubleArrayOf(65.0,17.85),doubleArrayOf(70.0,19.02),doubleArrayOf(75.0,20.18),
+                  doubleArrayOf(80.0,21.33),doubleArrayOf(85.0,22.48),doubleArrayOf(90.0,23.62),
+                  doubleArrayOf(95.0,24.77),doubleArrayOf(100.0,25.91),doubleArrayOf(110.0,28.18),
+                  doubleArrayOf(120.0,30.44),doubleArrayOf(130.0,32.70),doubleArrayOf(140.0,34.96),
+                  doubleArrayOf(150.0,37.21),doubleArrayOf(160.0,39.46),doubleArrayOf(170.0,41.70),
+                  doubleArrayOf(180.0,43.95),doubleArrayOf(190.0,46.19),doubleArrayOf(200.0,48.43),
+                  doubleArrayOf(220.0,52.80),doubleArrayOf(240.0,57.19),doubleArrayOf(260.0,61.57),
+                  doubleArrayOf(280.0,65.94),doubleArrayOf(300.0,70.29),doubleArrayOf(320.0,74.63),
+                  doubleArrayOf(340.0,78.96),doubleArrayOf(360.0,83.28),doubleArrayOf(380.0,87.60),
+                  doubleArrayOf(400.0,91.90),doubleArrayOf(450.0,102.63),doubleArrayOf(500.0,113.32),
+                  doubleArrayOf(550.0,123.97),doubleArrayOf(600.0,134.60),doubleArrayOf(650.0,145.20),
+                  doubleArrayOf(700.0,155.77),doubleArrayOf(750.0,166.33),doubleArrayOf(800.0,176.87),
+                  doubleArrayOf(850.0,187.39),doubleArrayOf(900.0,197.90),doubleArrayOf(950.0,208.39),
+                  doubleArrayOf(1000.0,218.87),doubleArrayOf(1250.0,271.14),doubleArrayOf(1600.0,343.90),
+                  doubleArrayOf(2000.0,426.80)
+              )
+              fun alphaOf(NP: Double): Double {
+                  if (NP < ALPHA_TABLE[0][0]) return 0.200
+                  val last = ALPHA_TABLE.last(); val prev = ALPHA_TABLE[ALPHA_TABLE.size-2]
+                  if (NP >= last[0]) return last[1] + (NP - last[0]) * (last[1] - prev[1]) / (last[0] - prev[0])
+                  for (i in 0 until ALPHA_TABLE.size - 1) {
+                      val x1 = ALPHA_TABLE[i][0]; val y1 = ALPHA_TABLE[i][1]
+                      val x2 = ALPHA_TABLE[i+1][0]; val y2 = ALPHA_TABLE[i+1][1]
+                      if (NP in x1..x2) return y1 + (NP - x1) * (y2 - y1) / (x2 - x1)
+                  }
+                  return last[1]
+              }
+              data class QsResult(val P: Double, val NP: Double, val alpha: Double, val qs: Double, val outOfB1Range: Boolean)
+              fun qsCalc(qhrPerCap: Double, U: Double, N: Double, q0: Double): QsResult {
+                  val P = if (q0 > 0 && N > 0) (qhrPerCap * U) / (q0 * N * 3600.0) else 0.0
+                  val NP = N * P; val alpha = alphaOf(NP); val qs = 5 * q0 * alpha
+                  return QsResult(P, NP, alpha, qs, !(P > 0.1 && N <= 200))
+              }
+              data class QhrResult(val Phr: Double, val NPhr: Double, val alphahr: Double, val qhr: Double)
+              fun qhrCalc(P: Double, q0: Double, N: Double, q0hr: Double): QhrResult {
+                  val Phr = if (q0hr > 0) (3600.0 * P * q0) / q0hr else 0.0
+                  val NPhr = N * Phr; val alphahr = alphaOf(NPhr); val qhr = 0.005 * q0hr * alphahr
+                  return QhrResult(Phr, NPhr, alphahr, qhr)
+              }
+              data class Meter(val dn: Int, val qmin: Double, val qt: Double, val qmax: Double, val thr: Double, val maxDay: Int, val S: Double)
+              val METERS = listOf(
+                  Meter(15, 0.03, 1.2, 3.0, 0.015, 45, 14.5), Meter(20, 0.05, 2.0, 5.0, 0.025, 70, 5.18),
+                  Meter(25, 0.07, 2.8, 7.0, 0.035, 100, 2.64), Meter(32, 0.10, 4.0, 10.0, 0.05, 140, 1.3),
+                  Meter(40, 0.16, 6.4, 16.0, 0.08, 230, 0.5), Meter(50, 0.30, 12.0, 30.0, 0.15, 450, 0.143),
+                  Meter(65, 1.5, 17.0, 70.0, 0.6, 610, 0.00081), Meter(80, 2.0, 36.0, 110.0, 0.7, 1300, 0.000264),
+                  Meter(100, 3.0, 65.0, 180.0, 1.2, 2350, 0.0000766), Meter(150, 4.0, 140.0, 350.0, 1.6, 5100, 0.000013),
+                  Meter(200, 6.0, 210.0, 600.0, 3.0, 7600, 0.0000035), Meter(250, 15.0, 380.0, 1000.0, 7.0, 13700, 0.0000018)
+              )
+              val PIPE_DN = listOf(10,15,20,25,32,40,50,63,75,90,110,125,140,160,200,225,250,315)
+              data class Preset(val name: String, val unit: String, val qsut: Double, val qsutH: Double, val qhr: Double, val qhrH: Double, val t: Int, val q0tot: Double, val q0c: Double, val q0h: Double, val isDish: Boolean = false)
+              val PRESETS = listOf(
+                  Preset("1а Жилой дом: без ванн","житель",70.0,0.0,5.0,0.0,24,0.2,0.2,0.0),
+                  Preset("1б Жилой дом: ванны+ТТ","житель",110.0,0.0,8.1,0.0,24,0.3,0.3,0.0),
+                  Preset("1в Жилой дом: ванны+газ","житель",120.0,0.0,8.7,0.0,24,0.3,0.3,0.0),
+                  Preset("1г Жилой дом: ЦГВ, умыв.+мойки+душ","житель",130.0,50.0,8.2,4.5,24,0.2,0.14,0.14),
+                  Preset("1д Жилой дом: сидячие ванны+душ","житель",160.0,65.0,10.3,5.7,24,0.3,0.2,0.2),
+                  Preset("1е Жилой дом: ванны 1500мм+душ","житель",180.0,70.0,11.6,6.5,24,0.3,0.2,0.2),
+                  Preset("2а Общежитие: общие душевые","человек",85.0,45.0,10.4,5.4,24,0.2,0.14,0.14),
+                  Preset("2б Общежитие: душ в комнате","человек",110.0,50.0,12.5,7.0,24,0.2,0.14,0.14),
+                  Preset("2в Общежитие: кухни+душ","человек",120.0,70.0,10.2,6.38,24,0.2,0.14,0.14),
+                  Preset("3а Гостиница: общие ванны","человек",120.0,60.0,12.5,7.0,24,0.3,0.2,0.2),
+                  Preset("3б Гостиница: душ везде","человек",230.0,120.0,19.0,10.2,24,0.2,0.14,0.14),
+                  Preset("3в Гостиница: ванны до 25%","человек",200.0,85.0,22.4,8.8,24,0.3,0.2,0.2),
+                  Preset("3г Гостиница: ванны до 75%","человек",250.0,130.0,28.0,12.8,24,0.3,0.2,0.2),
+                  Preset("3д Гостиница: ванны 100%","человек",300.0,160.0,30.0,13.6,24,0.3,0.2,0.2),
+                  Preset("4а Больница: общие ванны","койка",115.0,65.0,8.4,4.6,24,0.2,0.14,0.14),
+                  Preset("4б Больница: санузлы у палат","койка",200.0,75.0,12.0,6.55,24,0.3,0.2,0.2),
+                  Preset("4в Больница инфекционная","койка",240.0,95.0,14.0,8.1,24,0.2,0.14,0.14),
+                  Preset("5а Санаторий: общие души","место",130.0,55.0,12.5,7.0,24,0.2,0.14,0.14),
+                  Preset("5б Санаторий: душ в комнате","место",150.0,65.0,12.5,7.0,24,0.2,0.14,0.14),
+                  Preset("5в Санаторий: ванны везде","место",200.0,100.0,10.0,4.2,24,0.3,0.2,0.2),
+                  Preset("6 Поликлиника","больной в смену",13.0,4.4,2.6,1.0,10,0.2,0.14,0.14),
+                  Preset("7а Детсад дн: п/ф","ребёнок",22.0,10.0,9.5,3.8,10,0.14,0.1,0.1),
+                  Preset("7б Детсад дн: сырье+прачечная","ребёнок",60.0,21.0,18.0,6.8,10,0.2,0.14,0.14),
+                  Preset("7в Детсад кр: п/ф","ребёнок",40.0,20.0,10.0,3.8,24,0.14,0.1,0.1),
+                  Preset("7г Детсад кр: сырье+прач.","ребёнок",90.0,25.0,18.0,6.8,24,0.2,0.14,0.14),
+                  Preset("8а Прачечная механиз.","кг белья",75.0,21.3,75.0,21.3,24,0.3,0.2,0.2),
+                  Preset("8б Прачечная немеханиз.","кг белья",40.0,12.8,40.0,12.8,24,0.3,0.2,0.2),
+                  Preset("9 Админ. здание","работающий",12.0,4.5,4.0,1.7,8,0.14,0.1,0.1),
+                  Preset("10 ВУЗ с душ+буфет","учащийся",17.2,5.0,2.7,1.0,8,0.14,0.1,0.1),
+                  Preset("11 Лаборатория","прибор в смену",220.0,95.0,43.2,18.4,24,0.2,0.2,0.2),
+                  Preset("12а Школа: душ+столовая","учащийся",10.0,2.5,3.1,0.85,8,0.14,0.1,0.1),
+                  Preset("12б Школа продлёнка","учащийся",12.0,2.9,3.1,0.85,8,0.14,0.1,0.1),
+                  Preset("13а Школа-инт: учеб.","учащийся",9.0,2.7,3.1,0.85,24,0.14,0.1,0.1),
+                  Preset("13б Школа-инт: спальни","место",70.0,30.0,9.0,5.1,24,0.14,0.1,0.1),
+                  Preset("14а Аптека: зал","место",12.0,4.0,4.0,1.7,12,0.14,0.1,0.1),
+                  Preset("14б Аптека: лаборатория","место",310.0,47.0,32.0,7.0,12,0.2,0.2,0.2),
+                  Preset("15а Общепит в зале","блюдо",12.0,3.4,12.0,3.4,24,0.3,0.2,0.2,true),
+                  Preset("15б Общепит на дом","блюдо",10.0,2.6,10.0,2.6,24,0.3,0.2,0.2,true),
+                  Preset("16а Магазин прод.","работающий",250.0,55.0,37.0,8.2,8,0.3,0.2,0.2),
+                  Preset("16б Магазин пром.","работающий",12.0,4.0,4.0,1.7,8,0.14,0.1,0.1),
+                  Preset("17 Парикмахерская","рабочее место",56.0,28.0,9.0,4.0,12,0.14,0.1,0.1),
+                  Preset("18 Кинотеатр","место",4.0,1.3,0.5,0.17,4,0.14,0.1,0.1),
+                  Preset("19 Клуб","место",8.6,2.2,0.9,0.34,24,0.14,0.1,0.1),
+                  Preset("20а Театр: зрители","место",10.0,4.0,0.9,0.26,4,0.14,0.1,0.1),
+                  Preset("20б Театр: артисты","артист",40.0,21.0,3.4,1.9,8,0.14,0.1,0.1),
+                  Preset("21а Стадион: зрители","место",3.0,0.85,0.3,0.09,4,0.14,0.1,0.1),
+                  Preset("21б Стадион: физк-к","физкультурник",50.0,25.0,4.5,2.5,11,0.2,0.14,0.14),
+                  Preset("21в Стадион: спортсмен","спортсмен",100.0,51.0,9.0,4.3,11,0.2,0.14,0.14),
+                  Preset("23а Баня: мыльная+душ","посетитель",180.0,100.0,180.0,100.0,3,0.4,0.4,0.4),
+                  Preset("23б Баня: оздоровит.","посетитель",290.0,160.0,290.0,160.0,3,0.4,0.4,0.4),
+                  Preset("23в Баня: душ. кабина","посетитель",360.0,200.0,360.0,200.0,3,0.2,0.14,0.14),
+                  Preset("23г Баня: ванная кабина","посетитель",540.0,300.0,540.0,300.0,3,0.3,0.2,0.2),
+                  Preset("24 Душевые промпредпр.","душевая сетка",500.0,230.0,500.0,230.0,24,0.2,0.14,0.14),
+                  Preset("25а Цех с тепловыд.","чел. в смену",45.0,20.4,14.1,7.1,6,0.14,0.1,0.1),
+                  Preset("25б Цех обычный","чел. в смену",25.0,9.4,9.4,3.7,8,0.14,0.1,0.1),
+                  Preset("Другое (вручную)","чел",150.0,50.0,8.0,2.5,24,0.2,0.2,0.2)
+              )
+              val DISH_PRESET_INDEXES: List<Int> = PRESETS.mapIndexed { i, p -> if (p.isDish) i else -1 }.filter { it >= 0 }
+              val DISH_COEF = mapOf("stolovaya" to (2.0 to 0.45), "student" to (3.0 to 0.45), "restaurant" to (1.5 to 0.55))
+              data class DishParams(var type: String = "stolovaya", var n: Double = 50.0, var T: Double = 12.0, var y: Double = 0.45)
+              data class Consumer(val id: Int, var presetIdx: Int, var qty: Double = 100.0, var dish: DishParams? = null)
+              data class ConsumerU(val Uday: Double, val Uhour: Double)
+              fun consumerU(c: Consumer): ConsumerU {
+                  val p = PRESETS[c.presetIdx]
+                  return if (p.isDish) {
+                      val d = c.dish ?: DishParams()
+                      val m = DISH_COEF[d.type]?.first ?: 2.0
+                      val uch = 2.2 * d.n * m
+                      ConsumerU(uch * d.T * d.y, uch)
+                  } else ConsumerU(c.qty, c.qty)
+              }
+              data class ConsumerResult(
+                  val preset: Preset, val Uday: Double, val Uhour: Double, val N: Double,
+                  val QsutC: Double, val QhrC: Double, val qsC: Double,
+                  val QsutH: Double, val QhrH: Double, val qsH: Double,
+                  val QsutTot: Double, val QhrTot: Double, val qsWaterTot: Double,
+                  val rc: QsResult, val rh: QsResult, val rt: QsResult,
+                  val hc: QhrResult, val hh: QhrResult, val ht: QhrResult
+              )
+              fun computeConsumer(c: Consumer, ratio: Double, q0c: Double, q0h: Double, q0tot: Double,
+                                  q0hrC: Double, q0hrH: Double, q0hrTot: Double, NOverride: Double?): ConsumerResult {
+                  val p = PRESETS[c.presetIdx]
+                  val cu = consumerU(c); val Uday = cu.Uday; val Uhour = cu.Uhour
+                  val qsutC = max(0.0, p.qsut - p.qsutH); val qhrC = max(0.0, p.qhr - p.qhrH)
+                  val N = if (NOverride != null && NOverride > 0) NOverride else max(1.0, (Uhour * ratio).roundToInt().toDouble())
+                  val QsutC = qsutC * Uday / 1000.0
+                  val QsutH = p.qsutH * Uday / 1000.0
+                  val QsutTot = p.qsut * Uday / 1000.0
+                  val rc = qsCalc(qhrC, Uhour, N, q0c); val rh = qsCalc(p.qhrH, Uhour, N, q0h); val rt = qsCalc(p.qhr, Uhour, N, q0tot)
+                  val hc = qhrCalc(rc.P, q0c, N, q0hrC); val hh = qhrCalc(rh.P, q0h, N, q0hrH); val ht = qhrCalc(rt.P, q0tot, N, q0hrTot)
+                  return ConsumerResult(p, Uday, Uhour, N, QsutC, hc.qhr, rc.qs, QsutH, hh.qhr, rh.qs, QsutTot, ht.qhr, rt.qs, rc, rh, rt, hc, hh, ht)
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/ar/engineering/electric/ElectricCalc.kt << 'EOF'
+          package com.ar.engineering.electric
+          import kotlin.math.sqrt
+          object ElectricCalc {
+              val BRACKETS_71 = doubleArrayOf(5.0,6.0,9.0,12.0,15.0,18.0,24.0,40.0,60.0,100.0,200.0,400.0,600.0,1000.0)
+              val T71_gas = doubleArrayOf(4.5,2.8,2.3,2.0,1.8,1.65,1.4,1.2,1.05,0.85,0.77,0.71,0.69,0.67)
+              val T71_lpgSolid = doubleArrayOf(6.0,3.4,2.9,2.5,2.2,2.0,1.8,1.4,1.3,1.08,1.0,0.92,0.84,0.76)
+              val T71_electric = doubleArrayOf(10.0,5.1,3.8,3.2,2.8,2.6,2.2,1.95,1.7,1.5,1.36,1.27,1.23,1.19)
+              val BRACKETS_71A = doubleArrayOf(5.0,6.0,9.0,12.0,15.0,18.0,24.0,40.0,60.0,100.0,200.0,400.0,600.0,1000.0,1500.0,2000.0)
+              val T71A_gas = doubleArrayOf(4.5,2.27,1.86,1.62,1.46,1.34,1.13,0.97,0.85,0.69,0.62,0.58,0.56,0.54,0.53,0.52)
+              val T71A_electric = doubleArrayOf(10.0,4.13,3.08,2.6,2.27,2.11,1.78,1.45,1.16,0.97,0.91,0.79,0.67,0.63,0.61,0.59)
+              val T72_P = doubleArrayOf(14.0,20.0,30.0,40.0,50.0,60.0,70.0)
+              val T72_K = doubleArrayOf(0.8,0.65,0.6,0.55,0.5,0.48,0.45)
+              val T73_N = doubleArrayOf(5.0,6.0,9.0,12.0,15.0,18.0,24.0,40.0,60.0,100.0,200.0,400.0,600.0)
+              val T73_K = doubleArrayOf(1.0,0.51,0.38,0.32,0.29,0.26,0.24,0.2,0.18,0.16,0.14,0.13,0.11)
+              val T74_N = doubleArrayOf(1.0,2.0,3.0,4.0,5.0,6.0)
+              val T74_LOW = doubleArrayOf(0.8,0.7,0.65,0.5,0.4,0.35)
+              val T74_HIGH = doubleArrayOf(0.9,0.8,0.75,0.6,0.5,0.4)
+              fun interp(brackets: DoubleArray, values: DoubleArray, n: Double): Double {
+                  if (n <= brackets[0]) return values[0]
+                  if (n >= brackets.last()) return values.last()
+                  for (i in 0 until brackets.size - 1) {
+                      if (n in brackets[i]..brackets[i + 1]) {
+                          val t = (n - brackets[i]) / (brackets[i + 1] - brackets[i])
+                          return values[i] + t * (values[i + 1] - values[i])
+                      }
+                  }
+                  return values.last()
+              }
+              fun lookupStep(ns: DoubleArray, ks: DoubleArray, n: Int): Double {
+                  for (i in ns.indices) if (n <= ns[i]) return ks[i]
+                  return ks.last()
+              }
+              val BREAKERS = intArrayOf(6,10,16,20,25,32,40,50,63,80,100,125,160,200,250,315,400,500,630)
+              data class BuildingType(val label: String, val w: Double, val kc: Double, val kz: Double)
+              val BUILDING_TYPES = linkedMapOf(
+                  "office" to BuildingType("Офис", 25.0, 0.6, 0.9),
+                  "shopFood" to BuildingType("Магазин прод.", 30.0, 0.7, 0.9),
+                  "shopNon" to BuildingType("Магазин пром.", 20.0, 0.7, 0.9),
+                  "cafe" to BuildingType("Кафе/ресторан", 40.0, 0.75, 0.9),
+                  "school" to BuildingType("Школа", 15.0, 0.8, 0.9),
+                  "kinder" to BuildingType("Детский сад", 15.0, 0.85, 0.9),
+                  "clinic" to BuildingType("Поликлиника", 20.0, 0.7, 0.9),
+                  "gym" to BuildingType("Спортзал", 20.0, 0.7, 0.9),
+                  "warehouse" to BuildingType("Склад", 10.0, 0.6, 0.8),
+                  "parking" to BuildingType("Паркинг", 8.0, 0.7, 0.8)
+              )
+              data class Lift(var p: Double = 11.0)
+              data class Consumer(
+                  val id: Int, val type: String,
+                  var n: Double = 60.0, var stove: String = "gas", var region: String = "ru",
+                  var pDecl: Double = 20.0, var lifts: MutableList<Lift> = mutableListOf(Lift(), Lift()),
+                  var tall: Boolean = false, var btype: String = "office", var area: Double = 200.0,
+                  var wSpec: Double = 25.0, var kc: Double = 0.6, var kz: Double = 0.9,
+                  var name: String = "Прочий потребитель", var pUst: Double = 10.0, var kn: Double = 1.0,
+                  var source: String = "trans"
+              )
+              data class Result(val P: Double)
+              fun computeConsumer(c: Consumer): Result = when (c.type) {
+                  "apt" -> {
+                      val brackets = if (c.region == "msk") BRACKETS_71A else BRACKETS_71
+                      val values = if (c.region == "msk") (if (c.stove == "electric") T71A_electric else T71A_gas)
+                          else when (c.stove) { "lpgSolid" -> T71_lpgSolid; "electric" -> T71_electric; else -> T71_gas }
+                      Result(interp(brackets, values, c.n) * c.n)
+                  }
+                  "eliteapt" -> {
+                      val kc = interp(T72_P, T72_K, c.pDecl)
+                      val ko = interp(T73_N, T73_K, c.n)
+                      Result(c.pDecl * kc * c.n * ko)
+                  }
+                  "lift" -> {
+                      val kc = lookupStep(T74_N, if (c.tall) T74_HIGH else T74_LOW, c.lifts.size)
+                      Result(c.lifts.sumOf { it.p } * kc)
+                  }
+                  "building" -> Result(c.wSpec * c.area / 1000.0 * c.kc * c.kz)
+                  "other" -> Result(c.pUst * c.kc * c.kz * c.kn)
+                  else -> Result(0.0)
+              }
+              fun current3ph(P: Double, cosPhi: Double) = P * 1000.0 / (sqrt(3.0) * 380.0 * cosPhi)
+              fun current1ph(P: Double, cosPhi: Double) = P * 1000.0 / (220.0 * cosPhi)
+              fun breakerFor(I: Double): Int = BREAKERS.firstOrNull { it >= I } ?: BREAKERS.last()
+              val CABLE_S = intArrayOf(16,25,35,50,70,95,120,150,185,240)
+              val CABLE_AL_GROUND = intArrayOf(75,90,105,135,165,200,230,270,310,365)
+              val CABLE_AL_AIR = intArrayOf(60,80,100,135,165,205,240,275,315,370)
+              fun pickSection(I: Double, mat: String, lay: String): Pair<Int, Int> {
+                  val base = if (lay == "ground") CABLE_AL_GROUND else CABLE_AL_AIR
+                  val mult = if (mat == "cu") 1.3 else 1.0
+                  val idx = base.indexOfFirst { it * mult >= I }
+                  val i = if (idx == -1) base.size - 1 else idx
+                  return CABLE_S[i] to (base[i] * mult).toInt()
+              }
+              val TRANSFORMERS = intArrayOf(25,40,63,100,160,250,400,630,1000,1600,2500)
+              val HV_CABLE_S = intArrayOf(16,25,35,50,70,95,120,150,185,240)
+              data class HvResult(val S: Double, val Sreq: Double, val trans: Int, val Ihv: Double, val Sc: Double, val cable: Int)
+              fun hv(P: Double, cosPhi: Double, kz: Double, uhv: Double, jEk: Double): HvResult {
+                  val S = P / cosPhi; val Sreq = S / kz
+                  val trans = TRANSFORMERS.firstOrNull { it >= Sreq } ?: TRANSFORMERS.last()
+                  val Ihv = trans * 1000.0 / (sqrt(3.0) * uhv * 1000.0)
+                  val Sc = Ihv / jEk
+                  val cable = HV_CABLE_S.firstOrNull { it >= Sc } ?: HV_CABLE_S.last()
+                  return HvResult(S, Sreq, trans, Ihv, Sc, cable)
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/ar/engineering/electric/SchemeView.kt << 'EOF'
+          package com.ar.engineering.electric
+          import android.content.Context
+          import android.graphics.Canvas
+          import android.graphics.Color
+          import android.graphics.Paint
+          import android.util.AttributeSet
+          import android.view.View
+          import kotlin.math.max
+          class SchemeView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
+              data class Source(val id: String, val label: String, val power: Int, val isDgu: Boolean, val uhv: Int = 10, val hvCable: Int = 70, val lenHV: Int = 150)
+              data class Feeder(val label: String, val p: Double, val breaker: Int, val cable: Int, val lenLV: Int, val source: String)
+              var sources: List<Source> = emptyList() set(v) { field = v; requestLayout(); invalidate() }
+              var feeders: List<Feeder> = emptyList() set(v) { field = v; requestLayout(); invalidate() }
+              var useAvr: Boolean = true set(v) { field = v; invalidate() }
+              private val accent = Color.parseColor("#C6A06A")
+              private val accent2 = Color.parseColor("#D9B87F")
+              private val ink = Color.parseColor("#EFECE5")
+              private val dim = Color.parseColor("#8F8B81")
+              private val dguCol = Color.parseColor("#8A9BD9")
+              private val bg = Color.parseColor("#100E0C")
+              private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+              private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ink; textSize = 26f }
+              private val smallPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = dim; textSize = 20f }
+              private val boldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent2; textSize = 24f; isFakeBoldText = true }
+              override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                  setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), 520 + max(0, feeders.size - 1) * 40)
+              }
+              override fun onDraw(canvas: Canvas) {
+                  super.onDraw(canvas); canvas.drawColor(bg)
+                  if (sources.isEmpty()) return
+                  val w = width.toFloat(); val colCount = sources.size
+                  val colW = w / colCount
+                  val colX = FloatArray(colCount) { colW * it + colW / 2 }
+                  val transIdx = sources.indices.filter { !sources[it].isDgu }
+                  val dguIdx = sources.indexOfFirst { it.isDgu }
+                  val busY = 260f
+                  val transBusX0 = if (transIdx.isNotEmpty()) colX[transIdx.first()] - 120f else 0f
+                  val transBusX1 = if (transIdx.isNotEmpty()) colX[transIdx.last()] + 120f else 0f
+                  sources.forEachIndexed { i, s ->
+                      val x = colX[i]
+                      if (!s.isDgu) {
+                          paint.style = Paint.Style.STROKE; paint.color = dim; paint.strokeWidth = 1.5f
+                          paint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f, 8f), 0f)
+                          canvas.drawRect(x - colW/2 + 10f, 10f, x + colW/2 - 10f, 210f, paint); paint.pathEffect = null
+                          textPaint.color = ink; textPaint.textSize = 22f
+                          canvas.drawText(s.label, x - 90f, 40f, textPaint)
+                          paint.style = Paint.Style.STROKE; paint.color = accent; paint.strokeWidth = 3f
+                          canvas.drawCircle(x, 100f, 34f, paint); canvas.drawCircle(x, 145f, 34f, paint)
+                          paint.strokeWidth = 2.5f
+                          canvas.drawLine(x - 18f, 118f, x + 18f, 118f, paint); canvas.drawLine(x - 18f, 128f, x + 18f, 128f, paint)
+                          smallPaint.color = accent2; smallPaint.textSize = 22f; smallPaint.isFakeBoldText = true
+                          canvas.drawText("ТМГ " + s.power + " кВА", x - 95f, 195f, smallPaint)
+                          smallPaint.isFakeBoldText = false; smallPaint.color = dim; smallPaint.textSize = 18f
+                          canvas.drawText(s.uhv.toString() + "/0,4 кВ", x - 50f, 215f, smallPaint)
+                          paint.color = accent; paint.strokeWidth = 3f; canvas.drawLine(x, 178f, x, busY, paint)
+                          smallPaint.color = dim; smallPaint.textSize = 16f
+                          canvas.save(); canvas.rotate(-90f, x + 22f, (178f + busY) / 2)
+                          canvas.drawText("АВБбШнг(А)-LS 4×" + s.hvCable + ", " + s.lenHV + "м", x + 22f, (178f + busY) / 2, smallPaint)
+                          canvas.restore()
+                      } else {
+                          paint.style = Paint.Style.STROKE; paint.color = dguCol; paint.strokeWidth = 3f
+                          canvas.drawCircle(x, 110f, 38f, paint)
+                          textPaint.color = dguCol; textPaint.textSize = 34f; textPaint.isFakeBoldText = true
+                          canvas.drawText("G", x - 14f, 122f, textPaint); textPaint.isFakeBoldText = false
+                          textPaint.color = ink; textPaint.textSize = 20f
+                          canvas.drawText(s.label, x - 70f, 175f, textPaint)
+                          boldPaint.color = dguCol; boldPaint.textSize = 22f
+                          canvas.drawText(s.power.toString() + " кВт", x - 55f, 198f, boldPaint)
+                          paint.color = dguCol; paint.strokeWidth = 3f; canvas.drawLine(x, 148f, x, busY, paint)
+                      }
+                  }
+                  if (transIdx.isNotEmpty()) {
+                      paint.style = Paint.Style.STROKE; paint.color = accent; paint.strokeWidth = 5f
+                      canvas.drawLine(transBusX0, busY, transBusX1, busY, paint)
+                      if (transIdx.size > 1) {
+                          val midX = (transBusX0 + transBusX1) / 2
+                          paint.style = Paint.Style.FILL; paint.color = bg
+                          canvas.drawRect(midX - 60f, busY - 32f, midX + 60f, busY - 2f, paint)
+                          paint.style = Paint.Style.STROKE; paint.color = if (useAvr) accent else dim; paint.strokeWidth = 3f
+                          canvas.drawRect(midX - 60f, busY - 32f, midX + 60f, busY - 2f, paint)
+                          textPaint.color = if (useAvr) accent else dim; textPaint.textSize = 20f; textPaint.isFakeBoldText = true
+                          canvas.drawText(if (useAvr) "АВР" else "вручную", midX - (if (useAvr) 22f else 42f), busY - 10f, textPaint)
+                          textPaint.isFakeBoldText = false
+                      }
+                      smallPaint.color = dim; smallPaint.textSize = 18f
+                      canvas.drawText("0,4 кВ · PEN", (transBusX0 + transBusX1) / 2 - 60f, busY + 22f, smallPaint)
+                  }
+                  fun drawGroup(list: List<Feeder>, x0: Float, x1: Float) {
+                      if (list.isEmpty()) return
+                      val step = (x1 - x0) / list.size
+                      list.forEachIndexed { i, f ->
+                          val x = x0 + step * i + step / 2
+                          paint.color = dim; paint.strokeWidth = 2.5f
+                          canvas.drawLine(x, busY, x, busY + 50f, paint)
+                          paint.style = Paint.Style.STROKE; paint.color = accent; paint.strokeWidth = 3f
+                          canvas.drawRect(x - 14f, busY + 50f, x + 14f, busY + 76f, paint)
+                          paint.style = Paint.Style.FILL; paint.color = dim; paint.strokeWidth = 2.5f
+                          canvas.drawLine(x, busY + 76f, x, busY + 110f, paint)
+                          textPaint.color = ink; textPaint.textSize = 20f
+                          canvas.drawText(f.label, x - textPaint.measureText(f.label) / 2, busY + 135f, textPaint)
+                          boldPaint.color = accent2; boldPaint.textSize = 20f
+                          val pText = "%.1f кВт · QF%dА".format(f.p, f.breaker)
+                          canvas.drawText(pText, x - boldPaint.measureText(pText) / 2, busY + 160f, boldPaint)
+                          smallPaint.color = dim; smallPaint.textSize = 16f
+                          val cText = "4×" + f.cable + ", " + f.lenLV + "м"
+                          canvas.drawText(cText, x - smallPaint.measureText(cText) / 2, busY + 182f, smallPaint)
+                      }
+                  }
+                  val feedersTrans = feeders.filter { it.source != "dgu" }
+                  val feedersDgu = feeders.filter { it.source == "dgu" }
+                  if (transIdx.isNotEmpty()) {
+                      val cx = (transBusX0 + transBusX1) / 2
+                      val wGroup = max(transBusX1 - transBusX0, feedersTrans.size * 220f)
+                      drawGroup(feedersTrans, cx - wGroup / 2, cx + wGroup / 2)
+                  }
+                  if (dguIdx >= 0 && feedersDgu.isNotEmpty()) {
+                      val dguX = colX[dguIdx]
+                      val wGroup = max(220f, feedersDgu.size * 220f)
+                      drawGroup(feedersDgu, dguX - wGroup / 2, dguX + wGroup / 2)
+                  }
+              }
+          }
+          EOF
+
+          echo "Files created"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Debug APK
+        run: |
+          gradle wrapper --gradle-version 8.5 --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: eng-calc-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 30
