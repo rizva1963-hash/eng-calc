@@ -14,10 +14,8 @@ jobs:
       - name: Write project files
         run: |
           mkdir -p app/src/main/java/com/ar/engineering/water
-          mkdir -p app/src/main/java/com/ar/engineering/electric
           mkdir -p app/src/main/res/values app/src/main/res/layout app/src/main/res/drawable
-          mkdir -p app/src/main/res/menu app/src/main/res/xml
-          mkdir -p gradle/wrapper
+          mkdir -p app/src/main/res/menu
 
           cat > settings.gradle << 'XEOF'
           pluginManagement {
@@ -45,6 +43,7 @@ jobs:
           android.nonTransitiveRClass=true
           XEOF
 
+          mkdir -p gradle/wrapper
           cat > gradle/wrapper/gradle-wrapper.properties << 'XEOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -189,11 +188,132 @@ jobs:
           </LinearLayout>
           XEOF
 
+          cat > app/src/main/res/layout/fragment_water.xml << 'XEOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent" android:layout_height="match_parent"
+              android:background="@color/bg">
+          <LinearLayout android:orientation="vertical"
+              android:padding="14dp"
+              android:layout_width="match_parent" android:layout_height="wrap_content">
+
+              <TextView android:text="Расчёт расходов воды"
+                  android:textColor="@color/accent" android:textStyle="bold" android:textSize="17sp"
+                  android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+              <TextView android:text="СП 30.13330.2020"
+                  android:textColor="@color/ink2" android:textSize="11sp" android:paddingBottom="12dp"
+                  android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+              <LinearLayout android:orientation="vertical" android:background="@drawable/card_bg"
+                  android:padding="12dp" android:layout_marginBottom="10dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <TextView android:text="Потребитель" android:textColor="@color/accent"
+                      android:textStyle="bold" android:textSize="14sp" android:paddingBottom="6dp"
+                      android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                  <Spinner android:id="@+id/spPreset" android:background="@drawable/input_bg"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="6dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="Количество" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQty" android:inputType="numberDecimal" android:text="60"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1" android:layout_marginStart="6dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="Приборов на 1 ед." android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edRatio" android:inputType="numberDecimal" android:text="1"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                  </LinearLayout>
+              </LinearLayout>
+
+              <LinearLayout android:orientation="vertical" android:background="@drawable/card_bg"
+                  android:padding="12dp" android:layout_marginBottom="10dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <TextView android:text="Параметры приборов" android:textColor="@color/accent"
+                      android:textStyle="bold" android:textSize="14sp" android:paddingBottom="6dp"
+                      android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                  <LinearLayout android:orientation="horizontal"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0,c ХВС, л/с" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0c" android:inputType="numberDecimal" android:text="0.2"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1" android:layout_marginStart="6dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0,h ГВС, л/с" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0h" android:inputType="numberDecimal" android:text="0.2"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1" android:layout_marginStart="6dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0,tot" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0tot" android:inputType="numberDecimal" android:text="0.3"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                  </LinearLayout>
+                  <LinearLayout android:orientation="horizontal" android:layout_marginTop="6dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content">
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0,s сток" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0s" android:inputType="numberDecimal" android:text="1.6"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1" android:layout_marginStart="6dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0hr общ" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0hrTot" android:inputType="numberDecimal" android:text="300"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1" android:layout_marginStart="6dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0hr ХВС" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0hrC" android:inputType="numberDecimal" android:text="200"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                      <LinearLayout android:orientation="vertical" android:layout_weight="1" android:layout_marginStart="6dp"
+                          android:layout_width="0dp" android:layout_height="wrap_content">
+                          <TextView android:text="q0hr ГВС" android:textColor="@color/ink2" android:textSize="10sp"/>
+                          <EditText android:id="@+id/edQ0hrH" android:inputType="numberDecimal" android:text="200"
+                              android:background="@drawable/input_bg" android:textColor="@color/ink"
+                              android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                      </LinearLayout>
+                  </LinearLayout>
+              </LinearLayout>
+
+              <LinearLayout android:orientation="vertical" android:background="@drawable/card_bg"
+                  android:padding="14dp" android:layout_marginBottom="10dp"
+                  android:layout_width="match_parent" android:layout_height="wrap_content">
+                  <TextView android:text="Результат" android:textColor="@color/accent"
+                      android:textStyle="bold" android:textSize="14sp" android:paddingBottom="8dp"
+                      android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                  <TextView android:id="@+id/txtResult" android:textColor="@color/ink"
+                      android:textSize="13sp" android:typeface="monospace"
+                      android:lineSpacingExtra="4dp"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+              </LinearLayout>
+
+          </LinearLayout>
+          </ScrollView>
+          XEOF
+
           cat > app/src/main/java/com/ar/engineering/MainActivity.kt << 'XEOF'
           package com.ar.engineering
 
           import android.os.Bundle
-          import android.widget.TextView
           import androidx.appcompat.app.AppCompatActivity
           import androidx.fragment.app.Fragment
           import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -221,27 +341,6 @@ jobs:
           }
           XEOF
 
-          cat > app/src/main/java/com/ar/engineering/WaterFragment.kt << 'XEOF'
-          package com.ar.engineering
-
-          import android.os.Bundle
-          import android.view.LayoutInflater
-          import android.view.View
-          import android.view.ViewGroup
-          import android.widget.TextView
-          import androidx.fragment.app.Fragment
-
-          class WaterFragment : Fragment() {
-              override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View? {
-                  val v = TextView(requireContext())
-                  v.text = "Вода — каркас работает. Расчёты подключаются далее."
-                  v.setPadding(24, 24, 24, 24)
-                  v.setTextColor(0xFFEFECE5.toInt())
-                  return v
-              }
-          }
-          XEOF
-
           cat > app/src/main/java/com/ar/engineering/ElectricFragment.kt << 'XEOF'
           package com.ar.engineering
 
@@ -255,7 +354,7 @@ jobs:
           class ElectricFragment : Fragment() {
               override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View? {
                   val v = TextView(requireContext())
-                  v.text = "Электрика — каркас работает. Расчёты подключаются далее."
+                  v.text = "Электрика — в разработке.\n\nБудет добавлено на следующем шаге."
                   v.setPadding(24, 24, 24, 24)
                   v.setTextColor(0xFFEFECE5.toInt())
                   return v
@@ -263,7 +362,290 @@ jobs:
           }
           XEOF
 
-          echo "Files written"
+          cat > app/src/main/java/com/ar/engineering/water/WaterCalc.kt << 'XEOF'
+          package com.ar.engineering.water
+
+          import kotlin.math.max
+          import kotlin.math.roundToInt
+
+          object WaterCalc {
+
+              private val ALPHA_TABLE = arrayOf(
+                  doubleArrayOf(0.015,0.202),doubleArrayOf(0.02,0.215),doubleArrayOf(0.025,0.226),
+                  doubleArrayOf(0.03,0.237),doubleArrayOf(0.035,0.247),doubleArrayOf(0.04,0.256),
+                  doubleArrayOf(0.045,0.265),doubleArrayOf(0.05,0.273),doubleArrayOf(0.06,0.289),
+                  doubleArrayOf(0.07,0.304),doubleArrayOf(0.08,0.318),doubleArrayOf(0.09,0.331),
+                  doubleArrayOf(0.10,0.343),doubleArrayOf(0.12,0.367),doubleArrayOf(0.14,0.389),
+                  doubleArrayOf(0.16,0.410),doubleArrayOf(0.18,0.430),doubleArrayOf(0.20,0.449),
+                  doubleArrayOf(0.22,0.467),doubleArrayOf(0.24,0.485),doubleArrayOf(0.26,0.502),
+                  doubleArrayOf(0.28,0.518),doubleArrayOf(0.30,0.534),doubleArrayOf(0.34,0.565),
+                  doubleArrayOf(0.40,0.610),doubleArrayOf(0.45,0.645),doubleArrayOf(0.50,0.678),
+                  doubleArrayOf(0.60,0.742),doubleArrayOf(0.70,0.803),doubleArrayOf(0.80,0.860),
+                  doubleArrayOf(0.90,0.916),doubleArrayOf(1.00,0.969),doubleArrayOf(1.20,1.071),
+                  doubleArrayOf(1.40,1.168),doubleArrayOf(1.60,1.261),doubleArrayOf(1.80,1.350),
+                  doubleArrayOf(2.00,1.437),doubleArrayOf(2.5,1.644),doubleArrayOf(3.0,1.840),
+                  doubleArrayOf(3.5,2.029),doubleArrayOf(4.0,2.210),doubleArrayOf(4.5,2.386),
+                  doubleArrayOf(5.0,2.558),doubleArrayOf(5.5,2.726),doubleArrayOf(6.0,2.891),
+                  doubleArrayOf(6.5,3.053),doubleArrayOf(7.0,3.212),doubleArrayOf(7.5,3.369),
+                  doubleArrayOf(8.0,3.524),doubleArrayOf(8.5,3.677),doubleArrayOf(9.0,3.828),
+                  doubleArrayOf(9.5,3.978),doubleArrayOf(10.0,4.126),doubleArrayOf(11.0,4.419),
+                  doubleArrayOf(12.0,4.707),doubleArrayOf(13.0,4.990),doubleArrayOf(14.0,5.270),
+                  doubleArrayOf(15.0,5.547),doubleArrayOf(16.0,5.821),doubleArrayOf(17.0,6.093),
+                  doubleArrayOf(18.0,6.362),doubleArrayOf(19.0,6.629),doubleArrayOf(20.0,6.893),
+                  doubleArrayOf(22.0,7.417),doubleArrayOf(24.0,7.935),doubleArrayOf(25.0,8.192),
+                  doubleArrayOf(26.0,8.447),doubleArrayOf(28.0,8.955),doubleArrayOf(30.0,9.457),
+                  doubleArrayOf(32.0,9.957),doubleArrayOf(34.0,10.45),doubleArrayOf(36.0,10.94),
+                  doubleArrayOf(38.0,11.43),doubleArrayOf(40.0,11.92),doubleArrayOf(45.0,13.13),
+                  doubleArrayOf(50.0,14.32),doubleArrayOf(55.0,15.51),doubleArrayOf(60.0,16.69),
+                  doubleArrayOf(65.0,17.85),doubleArrayOf(70.0,19.02),doubleArrayOf(75.0,20.18),
+                  doubleArrayOf(80.0,21.33),doubleArrayOf(85.0,22.48),doubleArrayOf(90.0,23.62),
+                  doubleArrayOf(95.0,24.77),doubleArrayOf(100.0,25.91),doubleArrayOf(110.0,28.18),
+                  doubleArrayOf(120.0,30.44),doubleArrayOf(130.0,32.70),doubleArrayOf(140.0,34.96),
+                  doubleArrayOf(150.0,37.21),doubleArrayOf(160.0,39.46),doubleArrayOf(170.0,41.70),
+                  doubleArrayOf(180.0,43.95),doubleArrayOf(190.0,46.19),doubleArrayOf(200.0,48.43),
+                  doubleArrayOf(220.0,52.80),doubleArrayOf(240.0,57.19),doubleArrayOf(260.0,61.57),
+                  doubleArrayOf(280.0,65.94),doubleArrayOf(300.0,70.29),doubleArrayOf(320.0,74.63),
+                  doubleArrayOf(340.0,78.96),doubleArrayOf(360.0,83.28),doubleArrayOf(380.0,87.60),
+                  doubleArrayOf(400.0,91.90),doubleArrayOf(450.0,102.63),doubleArrayOf(500.0,113.32),
+                  doubleArrayOf(550.0,123.97),doubleArrayOf(600.0,134.60),doubleArrayOf(650.0,145.20),
+                  doubleArrayOf(700.0,155.77),doubleArrayOf(750.0,166.33),doubleArrayOf(800.0,176.87),
+                  doubleArrayOf(850.0,187.39),doubleArrayOf(900.0,197.90),doubleArrayOf(950.0,208.39),
+                  doubleArrayOf(1000.0,218.87),doubleArrayOf(1250.0,271.14),doubleArrayOf(1600.0,343.90),
+                  doubleArrayOf(2000.0,426.80)
+              )
+
+              fun alphaOf(NP: Double): Double {
+                  if (NP < ALPHA_TABLE[0][0]) return 0.200
+                  val last = ALPHA_TABLE.last()
+                  val prev = ALPHA_TABLE[ALPHA_TABLE.size-2]
+                  if (NP >= last[0]) return last[1] + (NP - last[0]) * (last[1] - prev[1]) / (last[0] - prev[0])
+                  for (i in 0 until ALPHA_TABLE.size - 1) {
+                      val x1 = ALPHA_TABLE[i][0]; val y1 = ALPHA_TABLE[i][1]
+                      val x2 = ALPHA_TABLE[i+1][0]; val y2 = ALPHA_TABLE[i+1][1]
+                      if (NP >= x1 && NP <= x2) return y1 + (NP - x1) * (y2 - y1) / (x2 - x1)
+                  }
+                  return last[1]
+              }
+
+              data class QsResult(val P: Double, val NP: Double, val alpha: Double, val qs: Double)
+              fun qsCalc(qhrPerCap: Double, U: Double, N: Double, q0: Double): QsResult {
+                  val P = if (q0 > 0 && N > 0) (qhrPerCap * U) / (q0 * N * 3600.0) else 0.0
+                  val NP = N * P; val alpha = alphaOf(NP); val qs = 5 * q0 * alpha
+                  return QsResult(P, NP, alpha, qs)
+              }
+
+              data class QhrResult(val Phr: Double, val NPhr: Double, val alphahr: Double, val qhr: Double)
+              fun qhrCalc(P: Double, q0: Double, N: Double, q0hr: Double): QhrResult {
+                  val Phr = if (q0hr > 0) (3600.0 * P * q0) / q0hr else 0.0
+                  val NPhr = N * Phr; val alphahr = alphaOf(NPhr); val qhr = 0.005 * q0hr * alphahr
+                  return QhrResult(Phr, NPhr, alphahr, qhr)
+              }
+
+              data class Preset(
+                  val name: String, val unit: String,
+                  val qsut: Double, val qsutH: Double, val qhr: Double, val qhrH: Double,
+                  val q0tot: Double, val q0c: Double, val q0h: Double
+              )
+
+              val PRESETS = listOf(
+                  Preset("1а Жилой дом: без ванн","житель",70.0,0.0,5.0,0.0,0.2,0.2,0.0),
+                  Preset("1б Жилой дом: ванны+ТТ","житель",110.0,0.0,8.1,0.0,0.3,0.3,0.0),
+                  Preset("1в Жилой дом: ванны+газ","житель",120.0,0.0,8.7,0.0,0.3,0.3,0.0),
+                  Preset("1г Жилой дом: ЦГВ, умыв+мойки+душ","житель",130.0,50.0,8.2,4.5,0.2,0.14,0.14),
+                  Preset("1д Жилой дом: сидячие ванны+душ","житель",160.0,65.0,10.3,5.7,0.3,0.2,0.2),
+                  Preset("1е Жилой дом: ванны 1500мм+душ","житель",180.0,70.0,11.6,6.5,0.3,0.2,0.2),
+                  Preset("2а Общежитие: общие душевые","человек",85.0,45.0,10.4,5.4,0.2,0.14,0.14),
+                  Preset("2б Общежитие: душ в комнате","человек",110.0,50.0,12.5,7.0,0.2,0.14,0.14),
+                  Preset("3а Гостиница: общие ванны","человек",120.0,60.0,12.5,7.0,0.3,0.2,0.2),
+                  Preset("3б Гостиница: душ везде","человек",230.0,120.0,19.0,10.2,0.2,0.14,0.14),
+                  Preset("3г Гостиница: ванны до 75%","человек",250.0,130.0,28.0,12.8,0.3,0.2,0.2),
+                  Preset("4а Больница: общие ванны","койка",115.0,65.0,8.4,4.6,0.2,0.14,0.14),
+                  Preset("4б Больница: санузлы у палат","койка",200.0,75.0,12.0,6.55,0.3,0.2,0.2),
+                  Preset("6 Поликлиника","больной в смену",13.0,4.4,2.6,1.0,0.2,0.14,0.14),
+                  Preset("7а Детсад дн: п/ф","ребёнок",22.0,10.0,9.5,3.8,0.14,0.1,0.1),
+                  Preset("7б Детсад дн: сырье+прачечная","ребёнок",60.0,21.0,18.0,6.8,0.2,0.14,0.14),
+                  Preset("9 Админ. здание","работающий",12.0,4.5,4.0,1.7,0.14,0.1,0.1),
+                  Preset("10 ВУЗ с душ+буфет","учащийся",17.2,5.0,2.7,1.0,0.14,0.1,0.1),
+                  Preset("12а Школа: душ+столовая","учащийся",10.0,2.5,3.1,0.85,0.14,0.1,0.1),
+                  Preset("12б Школа продлёнка","учащийся",12.0,2.9,3.1,0.85,0.14,0.1,0.1),
+                  Preset("16а Магазин прод.","работающий",250.0,55.0,37.0,8.2,0.3,0.2,0.2),
+                  Preset("16б Магазин пром.","работающий",12.0,4.0,4.0,1.7,0.14,0.1,0.1),
+                  Preset("17 Парикмахерская","рабочее место",56.0,28.0,9.0,4.0,0.14,0.1,0.1),
+                  Preset("21б Стадион: физк-к с душем","физкультурник",50.0,25.0,4.5,2.5,0.2,0.14,0.14),
+                  Preset("21в Стадион: спортсмен","спортсмен",100.0,51.0,9.0,4.3,0.2,0.14,0.14),
+                  Preset("23а Баня: мыльная+душ","посетитель",180.0,100.0,180.0,100.0,0.4,0.4,0.4),
+                  Preset("24 Душевые промпредпр.","душевая сетка",500.0,230.0,500.0,230.0,0.2,0.14,0.14),
+                  Preset("25б Цех обычный","чел. в смену",25.0,9.4,9.4,3.7,0.14,0.1,0.1),
+                  Preset("Другое (вручную)","чел",150.0,50.0,8.0,2.5,0.2,0.2,0.2)
+              )
+
+              data class Result(
+                  val name: String,
+                  val QsutC: Double, val QhrC: Double, val qsC: Double,
+                  val QsutH: Double, val QhrH: Double, val qsH: Double,
+                  val QsutTot: Double, val QhrTot: Double, val qsWaterTot: Double
+              )
+
+              fun compute(presetIdx: Int, qty: Double, ratio: Double,
+                          q0c: Double, q0h: Double, q0tot: Double,
+                          q0hrC: Double, q0hrH: Double, q0hrTot: Double): Result {
+                  val p = PRESETS[presetIdx]
+                  val Uday = qty
+                  val Uhour = qty
+                  val N = max(1.0, (Uhour * ratio).roundToInt().toDouble())
+                  val qsutC = max(0.0, p.qsut - p.qsutH)
+                  val qhrC = max(0.0, p.qhr - p.qhrH)
+                  val QsutC = qsutC * Uday / 1000.0
+                  val QsutH = p.qsutH * Uday / 1000.0
+                  val QsutTot = p.qsut * Uday / 1000.0
+                  val rc = qsCalc(qhrC, Uhour, N, q0c)
+                  val rh = qsCalc(p.qhrH, Uhour, N, q0h)
+                  val rt = qsCalc(p.qhr, Uhour, N, q0tot)
+                  val hc = qhrCalc(rc.P, q0c, N, q0hrC)
+                  val hh = qhrCalc(rh.P, q0h, N, q0hrH)
+                  val ht = qhrCalc(rt.P, q0tot, N, q0hrTot)
+                  return Result(p.name, QsutC, hc.qhr, rc.qs, QsutH, hh.qhr, rh.qs, QsutTot, ht.qhr, rt.qs)
+              }
+
+              data class Meter(val dn: Int, val qt: Double, val qmax: Double, val thr: Double, val maxDay: Int, val S: Double)
+              val METERS = listOf(
+                  Meter(15, 1.2, 3.0, 0.015, 45, 14.5),
+                  Meter(20, 2.0, 5.0, 0.025, 70, 5.18),
+                  Meter(25, 2.8, 7.0, 0.035, 100, 2.64),
+                  Meter(32, 4.0, 10.0, 0.05, 140, 1.3),
+                  Meter(40, 6.4, 16.0, 0.08, 230, 0.5),
+                  Meter(50, 12.0, 30.0, 0.15, 450, 0.143),
+                  Meter(65, 17.0, 70.0, 0.6, 610, 0.00081),
+                  Meter(80, 36.0, 110.0, 0.7, 1300, 0.000264),
+                  Meter(100, 65.0, 180.0, 1.2, 2350, 0.0000766)
+              )
+
+              val PIPE_DN = listOf(10,15,20,25,32,40,50,63,75,90,110,125,140,160,200,225,250,315)
+          }
+          XEOF
+
+          cat > app/src/main/java/com/ar/engineering/water/WaterFragment.kt << 'XEOF'
+          package com.ar.engineering.water
+
+          import android.os.Bundle
+          import android.text.Editable
+          import android.view.LayoutInflater
+          import android.view.View
+          import android.view.ViewGroup
+          import android.widget.*
+          import androidx.core.widget.doAfterTextChanged
+          import androidx.fragment.app.Fragment
+          import com.ar.engineering.R
+          import kotlin.math.pow
+          import kotlin.math.sqrt
+
+          class WaterFragment : Fragment() {
+
+              private var presetIdx = 0
+              private var qty = 60.0
+              private var ratio = 1.0
+              private var q0c = 0.2; private var q0h = 0.2; private var q0tot = 0.3; private var q0s = 1.6
+              private var q0hrTot = 300.0; private var q0hrC = 200.0; private var q0hrH = 200.0
+
+              private lateinit var resultTv: TextView
+              private lateinit var spPreset: Spinner
+
+              override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, s: Bundle?): View =
+                  inflater.inflate(R.layout.fragment_water, container, false)
+
+              override fun onViewCreated(v: View, s: Bundle?) {
+                  spPreset = v.findViewById(R.id.spPreset)
+                  spPreset.adapter = ArrayAdapter(requireContext(),
+                      android.R.layout.simple_spinner_dropdown_item,
+                      WaterCalc.PRESETS.map { it.name })
+                  spPreset.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                      override fun onItemSelected(a: AdapterView<*>?, b: View?, pos: Int, d: Long) {
+                          presetIdx = pos; recalc()
+                      }
+                      override fun onNothingSelected(a: AdapterView<*>?) {}
+                  }
+                  resultTv = v.findViewById(R.id.txtResult)
+
+                  bindField(v, R.id.edQty) { qty = it ?: 0.0 }
+                  bindField(v, R.id.edRatio) { ratio = it ?: 1.0 }
+                  bindField(v, R.id.edQ0c) { q0c = it ?: 0.2 }
+                  bindField(v, R.id.edQ0h) { q0h = it ?: 0.2 }
+                  bindField(v, R.id.edQ0tot) { q0tot = it ?: 0.3 }
+                  bindField(v, R.id.edQ0s) { q0s = it ?: 1.6 }
+                  bindField(v, R.id.edQ0hrTot) { q0hrTot = it ?: 300.0 }
+                  bindField(v, R.id.edQ0hrC) { q0hrC = it ?: 200.0 }
+                  bindField(v, R.id.edQ0hrH) { q0hrH = it ?: 200.0 }
+
+                  recalc()
+              }
+
+              private fun bindField(v: View, id: Int, cb: (Double?) -> Unit) {
+                  val e = v.findViewById<EditText>(id)
+                  e.doAfterTextChanged { t: Editable? -> cb(t?.toString()?.toDoubleOrNull()); recalc() }
+              }
+
+              private fun recalc() {
+                  if (!::resultTv.isInitialized) return
+                  val r = WaterCalc.compute(presetIdx, qty, ratio, q0c, q0h, q0tot, q0hrC, q0hrH, q0hrTot)
+                  val added = r.qsWaterTot <= 8.0
+                  val qsK1 = if (added) r.qsWaterTot + q0s else r.qsWaterTot
+
+                  val sb = StringBuilder()
+                  sb.append("Потребитель: ${r.name}\n")
+                  sb.append("Количество: ${qty.toInt()} × ${ratio} приборов\n\n")
+
+                  sb.append("ХВС (В1):\n")
+                  sb.append("  суточный:    %.3f м³/сут\n".format(r.QsutC))
+                  sb.append("  часовой:     %.3f м³/ч\n".format(r.QhrC))
+                  sb.append("  секундный:   %.3f л/с\n\n".format(r.qsC))
+
+                  sb.append("ГВС (Т3):\n")
+                  sb.append("  суточный:    %.3f м³/сут\n".format(r.QsutH))
+                  sb.append("  часовой:     %.3f м³/ч\n".format(r.QhrH))
+                  sb.append("  секундный:   %.3f л/с\n\n".format(r.qsH))
+
+                  sb.append("Канализация (К1):\n")
+                  sb.append("  суточный:    %.3f м³/сут\n".format(r.QsutTot))
+                  sb.append("  часовой:     %.3f м³/ч\n".format(r.QhrTot))
+                  if (added) sb.append("  секундный:   %.3f + %.1f = %.3f л/с\n\n".format(r.qsWaterTot, q0s, qsK1))
+                  else sb.append("  секундный:   %.3f л/с\n\n".format(qsK1))
+
+                  // Счётчик
+                  val T = 24.0
+                  val Qavg = r.QsutC / T
+                  var chosen: WaterCalc.Meter? = null
+                  for (m in WaterCalc.METERS) {
+                      val isCr = m.dn <= 50
+                      val hmax = if (isCr) 5.0 else 2.5
+                      val loss = m.S * r.qsC.pow(2)
+                      if (Qavg <= m.qt && r.QhrC <= m.qmax && loss <= hmax) { chosen = m; break }
+                  }
+                  if (chosen != null) {
+                      val loss = chosen.S * r.qsC.pow(2)
+                      sb.append("Счётчик воды (В1):\n")
+                      sb.append("  среднечасовой: %.3f м³/ч (Т=24ч)\n".format(Qavg))
+                      sb.append("  рекомендован:  Ду${chosen.dn} (${if (chosen.dn<=50) "крыльчатый" else "турбинный"})\n")
+                      sb.append("  потери:        %.3f м\n\n".format(loss))
+                  }
+
+                  // Труба
+                  val v1 = 1.0
+                  val dCalc = sqrt(4 * (r.qsC/1000.0) / (Math.PI * v1)) * 1000.0
+                  val dn = WaterCalc.PIPE_DN.firstOrNull { it >= dCalc } ?: WaterCalc.PIPE_DN.last()
+                  val A = Math.PI * (dn/1000.0).pow(2) / 4.0
+                  val vAct = (r.qsC/1000.0) / A
+                  sb.append("Труба В1 (v=1,0 м/с):\n")
+                  sb.append("  требуемый Ду: %.1f мм\n".format(dCalc))
+                  sb.append("  стандартный:  Ду${dn}\n")
+                  sb.append("  скорость:     %.2f м/с\n".format(vAct))
+
+                  resultTv.text = sb.toString()
+              }
+          }
+          XEOF
+
+          echo "=== Files written ==="
+          ls -R app/src/main
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
