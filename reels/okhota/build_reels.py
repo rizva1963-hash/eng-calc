@@ -4,9 +4,11 @@
 Usage: build_reels.py <1|2> [steps...]
 steps: video | audio | ass | final | sheet   (default: video audio ass final sheet)
 REDO=0,6 build_reels.py 2 video ass final    -> re-render only shots 0 and 6
-SYNTH_BIRDS=1 build_reels.py 1 audio final   -> add synthesized birdsong (off by default)
 
 v2 (11.10): all fixes from HANDOFF «Что исправить дальше» + contact sheet for frame review.
+v3 (11.10): no music and no synthesized sound at all — only real sound recorded on the phone:
+            a continuous live nature bed (marsh at dawn, BED below) + each shot's own sound,
+            speech in the selfie shots compressed, loud and clear, bed ducked under it.
 """
 import subprocess, os, sys, wave
 import numpy as np
@@ -19,8 +21,16 @@ AVATAR = os.path.join(_HERE, "avatar.png")
 FONTS = os.environ.get("FONTS", "/usr/share/fonts/opentype/inter")  # Inter / Inter Display
 FPS, SR = 30, 44100
 HANDLE = "@riz1van.live"
-# synthesized birds sounded artificial in review -> live sound only unless explicitly enabled
-SYNTH_BIRDS = os.environ.get("SYNTH_BIRDS", "0") == "1"
+# live nature bed per part: (source clip, start sec). 063635 = 80 s of fog over the marsh at dawn.
+# Override after listening, e.g. BED1=20261011_060709:0.0
+BED = {1: ("20261011_063635", 15.0), 2: ("20261011_063635", 50.0)}
+for _p in (1, 2):
+    if os.environ.get(f"BED{_p}"):
+        _src, _ss = os.environ[f"BED{_p}"].split(":"); BED[_p] = (_src, float(_ss))
+VOICE_AF = ("highpass=f=100,lowpass=f=8500,afftdn=nr=12,"
+            "acompressor=threshold=-26dB:ratio=3.5:attack=5:release=150:makeup=4,"
+            "equalizer=f=3000:t=q:w=1.2:g=3")  # clear, forward speech
+NATURE_AF = "highpass=f=120,lowpass=f=11000,afftdn=nr=6"  # trims phone rumble/hiss, keeps birds & water
 
 # ---------------------------------------------------------------- grades
 GRAIN = "noise=alls=5:allf=t"
@@ -198,124 +208,44 @@ def ambience(shots, out_dir, total):
             continue
         p = f"{out_dir}/amb{i:02d}.wav"
         run(["ffmpeg", "-v", "error", "-y", "-ss", str(s["ss"]), "-t", str(s["d"] * s.get("speed", 1)), "-i",
-             f"{SRC}/{s['src']}.mp4", "-vn", "-af", ("highpass=f=90,lowpass=f=12000,afftdn=nr=8,aresample=44100" if s.get("voice") else "highpass=f=140,lowpass=f=10000,aresample=44100"), "-ac", "2", p])
+             f"{SRC}/{s['src']}.mp4", "-vn", "-af", f"{VOICE_AF if s.get('voice') else NATURE_AF},aresample=44100",
+             "-ac", "2", p])
         a = read_wav(p)
-        n = len(a); f = int(0.35 * SR)
+        n = len(a); f = int((0.03 if s.get("voice") else 0.35) * SR)  # speech: no dip at the cut between 5 and 6
         env = np.ones(n, np.float32); env[:f] = np.linspace(0, 1, f); env[-f:] = np.linspace(1, 0, f)
-        # normalise each clip ambience to similar level; v2: voices noticeably louder than nature
+        # normalise each clip to a common level; speech sits well above nature
         rms = np.sqrt(np.mean(a ** 2)) + 1e-5
-        a = a * env[:, None] * min((0.12 if s.get("voice") else 0.05) / rms, 6.0)
+        a = a * env[:, None] * min((0.16 if s.get("voice") else 0.05) / rms, 8.0)
         i0 = int(starts[i] * SR)
         bus[i0:i0 + n] += a[: len(bus) - i0]
     write_wav(f"{out_dir}/amb.wav", bus[: int(total * SR)])
 
 
-def reverb(x, seconds=2.8, seed=1, wet=0.35):
-    rng = np.random.default_rng(seed)
-    n = int(seconds * SR); t = np.arange(n) / SR
-    out = np.zeros_like(x)
-    for ch in range(2):
-        ir = rng.standard_normal(n) * np.exp(-t / (seconds / 6.5))
-        ir[: int(0.012 * SR)] = 0
-        ir /= np.sqrt(np.sum(ir ** 2))
-        L = len(x) + n
-        N = 1 << (L - 1).bit_length()
-        y = np.fft.irfft(np.fft.rfft(x[:, ch], N) * np.fft.rfft(ir, N), N)[: len(x)]
-        out[:, ch] = y
-    return x * (1 - wet) + out * wet * 1.6
+def bed(part, total, out_dir, duck=None, quiet=None):
+    """Continuous REAL nature sound under the whole reel (no music, nothing synthesized).
+    Taken from one long live take so it never jumps between cuts; looped with a crossfade if too short.
+    duck=(t0, t1): bed drops to 20% under speech.  quiet=(t0, t1): bed at 50% (e.g. inside the car)."""
+    src, ss = BED[part]
+    p = f"{out_dir}/bed_src.wav"
+    run(["ffmpeg", "-v", "error", "-y", "-ss", str(ss), "-t", str(total + 1), "-i", f"{SRC}/{src}.mp4", "-vn",
+         "-af", f"{NATURE_AF},aresample=44100", "-ac", "2", p])
+    a = read_wav(p)
+    n = int(total * SR)
+    while len(a) < n:  # loop with 1 s crossfade
+        xf = min(SR, len(a) // 4); r = np.linspace(0, 1, xf)[:, None]
+        a = np.concatenate([a[:-xf], a[-xf:] * (1 - r) + a[:xf] * r, a[xf:]])
+    a = a[:n]
+    a = a * (0.05 / (np.sqrt(np.mean(a ** 2)) + 1e-5))  # same level as per-shot nature
+    t = np.arange(n) / SR
 
+    def dip(rng_, depth, ramp=0.4):
+        t0, t1 = rng_
+        return 1 - depth * np.clip(np.minimum((t - t0 + ramp) / ramp, (t1 + ramp - t) / ramp), 0, 1)
 
-def nature(total, part, out_dir, starts, birds_from, crickets_to, gusts, duck=None):
-    """No music: wind bed, crickets, wind gusts (+ synthesized birdsong if SYNTH_BIRDS).
-    duck=(t0, t1): whole bed drops to 35% so voices sit on top."""
-    n = int(total * SR) + SR
-    mix = np.zeros((n, 2))
-    rng = np.random.default_rng(300 + part)
-    t_all = np.arange(n) / SR
-
-    def add(sig, at, pan=0.0, g=1.0):
-        i = int(at * SR)
-        if i >= n or at < 0: return
-        sig = sig[: n - i]
-        mix[i:i + len(sig), 0] += sig * g * (1 - max(pan, 0))
-        mix[i:i + len(sig), 1] += sig * g * (1 + min(pan, 0))
-
-    # wind bed: brown-ish noise with slow swells, stereo decorrelated
-    for ch in range(2):
-        w = np.cumsum(rng.standard_normal(n)); w -= np.convolve(w, np.ones(4410) / 4410, "same")
-        w /= np.abs(w).max() + 1e-9
-        swell = 0.55 + 0.45 * np.sin(2 * np.pi * t_all / 7.3 + ch) * np.sin(2 * np.pi * t_all / 3.1 + 1.3 * ch)
-        mix[:, ch] += w * swell * 0.05
-
-    # gusts: rising airy swell
-    for at, g in gusts:
-        m = int(2.6 * SR); t = np.arange(m) / SR
-        x = np.cumsum(rng.standard_normal(m)); x -= np.convolve(x, np.ones(120) / 120, "same")
-        x /= np.abs(x).max() + 1e-9
-        e = np.sin(np.pi * np.clip(t / 2.6, 0, 1)) ** 2
-        st = at - 1.3
-        sig = x * e * 0.14 * g
-        if st < 0: sig = sig[int(-st * SR):]; st = 0.0
-        add(sig, st, 0.0)
-
-    # crickets (night/dusk)
-    if crickets_to > 0:
-        tt = 0.2
-        while tt < crickets_to:
-            m = int(0.35 * SR); t = np.arange(m) / SR
-            f = 4300 + rng.uniform(-300, 300)
-            pulses = (np.sin(2 * np.pi * 28 * t) > 0.2).astype(float)
-            c = np.sin(2 * np.pi * f * t) * pulses * np.sin(np.pi * t / 0.35)
-            fade = 1.0 if tt < crickets_to - 1.5 else max(0, (crickets_to - tt) / 1.5)
-            add(c * 0.012 * fade, tt, rng.uniform(-0.7, 0.7))
-            tt += rng.uniform(0.35, 0.9)
-
-    # dawn birdsong: several "species" of trills/whistles at different distances
-    def chirp(f0, f1, dur, harm=0.15):
-        m = int(dur * SR); t = np.arange(m) / SR
-        f = f0 + (f1 - f0) * (t / dur) ** 0.7
-        ph = 2 * np.pi * np.cumsum(f) / SR
-        e = np.sin(np.pi * t / dur) ** 1.5
-        return (np.sin(ph) + harm * np.sin(2 * ph)) * e
-
-    def song(kind):
-        parts = []
-        if kind == 0:  # quick descending trill
-            base = rng.uniform(3800, 5200)
-            for k in range(rng.integers(5, 10)):
-                parts.append(chirp(base * (1 - 0.02 * k), base * 0.75, 0.05)); parts.append(np.zeros(int(0.025 * SR)))
-        elif kind == 1:  # two-note whistle (tit-like "ti-tu")
-            hi = rng.uniform(4500, 6000); lo = hi * 0.78
-            for k in range(rng.integers(2, 4)):
-                parts += [chirp(hi, hi * 1.02, 0.11, 0.05), np.zeros(int(0.05 * SR)), chirp(lo, lo * 0.98, 0.13, 0.05),
-                          np.zeros(int(0.12 * SR))]
-        else:  # warbling phrase
-            base = rng.uniform(2600, 3600)
-            for k in range(rng.integers(6, 12)):
-                a_ = base * rng.uniform(0.8, 1.4); b_ = a_ * rng.uniform(0.7, 1.3)
-                parts.append(chirp(a_, b_, rng.uniform(0.04, 0.09), 0.25)); parts.append(np.zeros(int(rng.uniform(0.01, 0.04) * SR)))
-        return np.concatenate(parts)
-
-    if SYNTH_BIRDS:
-        tt = birds_from
-        while tt < total - 1.0:
-            kind = int(rng.integers(0, 3))
-            sng = song(kind)
-            dist = rng.uniform(0.3, 1.0)  # 1 = close
-            g = 0.035 * dist
-            fade_in = min(1.0, (tt - birds_from) / 1.5 + 0.2)
-            add(sng * g * fade_in, tt, rng.uniform(-0.8, 0.8))
-            tt += rng.uniform(0.6, 1.8)
-
-    mix = reverb(mix, seconds=2.2, seed=part + 11, wet=0.3)
-    mix *= np.clip((total - t_all) / 1.6, 0, 1)[:, None]
-    mix *= np.clip(t_all / 0.3, 0, 1)[:, None]
-    mix /= np.abs(mix).max() + 1e-9
-    if duck:
-        t0, t1 = duck  # smooth 0.4 s ramps down to 0.35 and back
-        g = 1 - 0.65 * np.clip(np.minimum((t_all - t0 + 0.4) / 0.4, (t1 + 0.4 - t_all) / 0.4), 0, 1)
-        mix *= g[:, None]
-    write_wav(f"{out_dir}/music.wav", (mix * 0.5)[: int(total * SR)])
+    g = np.clip(t / 0.6, 0, 1) * np.clip((total - t) / 1.6, 0, 1)  # fade in / out
+    if quiet: g = g * dip(quiet, 0.5)
+    if duck: g = g * dip(duck, 0.8)
+    write_wav(f"{out_dir}/bed.wav", a * g[:, None])
 
 
 # ---------------------------------------------------------------- captions
@@ -438,18 +368,16 @@ def build(part, steps, redo=None):
     if "audio" in steps:
         ambience(shots, out, total)
         s_ = starts
-        if part == 1:
-            nature(total, 1, out, s_, birds_from=s_[3] + 0.3, crickets_to=s_[3] + 1.0,
-                   gusts=[(0.6, 0.8), (s_[9] + 1.2, 1.0), (s_[10] + 0.6, 0.6)])
-        else:
-            nature(total, 2, out, s_, birds_from=0.4, crickets_to=0,
-                   gusts=[(0.6, 0.9), (s_[7] + 0.6, 0.6)], duck=(s_[5], s_[7]))
+        if part == 1:  # night car + dusk road (shots 1-2) are muted: bed softer there
+            bed(1, total, out, quiet=(s_[1], s_[3]))
+        else:          # selfie with speech = shots 5-6
+            bed(2, total, out, duck=(s_[5], s_[7]))
     if "ass" in steps: ass(captions(part, shots), out)
     name = f"{W}/series/okhota_part{part}"
     if "final" in steps:
-        run(["ffmpeg", "-v", "error", "-y", "-i", f"{out}/music.wav", "-i", f"{out}/amb.wav", "-filter_complex",
-             "[0:a]volume=0.9[m];[1:a]volume=1.0[a];[m][a]amix=inputs=2:duration=first:normalize=0,"
-             "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100[o]", "-map", "[o]", f"{out}/mix.wav"])
+        run(["ffmpeg", "-v", "error", "-y", "-i", f"{out}/bed.wav", "-i", f"{out}/amb.wav", "-filter_complex",
+             "[0:a][1:a]amix=inputs=2:duration=first:normalize=0,"
+             "loudnorm=I=-14:TP=-1.5:LRA=9,aresample=44100[o]", "-map", "[o]", f"{out}/mix.wav"])
         run(["ffmpeg", "-v", "error", "-y", "-i", f"{out}/video_raw.mp4", "-i", f"{out}/mix.wav",
              "-vf", f"ass={out}/caps.ass:fontsdir={FONTS}", "-c:v", "libx264", "-crf", "19", "-maxrate", "16M", "-bufsize", "32M", "-preset", "medium",
              "-pix_fmt", "yuv420p", "-r", str(FPS), "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart",
