@@ -1,7 +1,8 @@
 {
   "enabledPlugins": {
     "ponytail@ponytail": true,
-    "agent-skills@addy-agent-skills": true
+    "agent-skills@addy-agent-skills": true,
+    "watch@claude-video": true
   },
   "extraKnownMarketplaces": {
     "ponytail": {
@@ -14,6 +15,12 @@
       "source": {
         "source": "github",
         "repo": "addyosmani/agent-skills"
+      }
+    },
+    "claude-video": {
+      "source": {
+        "source": "github",
+        "repo": "bradautomates/claude-video"
       }
     }
   }
