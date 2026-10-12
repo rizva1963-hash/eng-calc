@@ -2,7 +2,8 @@
   "enabledPlugins": {
     "ponytail@ponytail": true,
     "agent-skills@addy-agent-skills": true,
-    "watch@claude-video": true
+    "watch@claude-video": true,
+    "claude-mem@thedotmack": true
   },
   "extraKnownMarketplaces": {
     "ponytail": {
@@ -21,6 +22,12 @@
       "source": {
         "source": "github",
         "repo": "bradautomates/claude-video"
+      }
+    },
+    "thedotmack": {
+      "source": {
+        "source": "github",
+        "repo": "thedotmack/claude-mem"
       }
     }
   }
