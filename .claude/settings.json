@@ -16,7 +16,8 @@
     "agent-skills@addy-agent-skills": true,
     "watch@claude-video": true,
     "claude-mem@thedotmack": true,
-    "claude-code-setup@claude-plugins-official": true
+    "claude-code-setup@claude-plugins-official": true,
+    "founder-skill@founder-skill": true
   },
   "extraKnownMarketplaces": {
     "ponytail": {
@@ -47,6 +48,12 @@
       "source": {
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
+      }
+    },
+    "founder-skill": {
+      "source": {
+        "source": "github",
+        "repo": "Jakeschincariol/founder-skill"
       }
     }
   }
