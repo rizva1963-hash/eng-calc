@@ -1,0 +1,5 @@
+{
+  "manual_call_templates": [],
+  "tool_repository": { "tool_repository_type": "in_memory" },
+  "tool_search_strategy": { "tool_search_strategy_type": "tag_and_description_word_match" }
+}

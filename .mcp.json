@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "utcp-codemode": {
+      "command": "npx",
+      "args": ["-y", "@utcp/code-mode-mcp@1.2.1"],
+      "env": { "UTCP_CONFIG_FILE": "${CLAUDE_PROJECT_DIR}/.utcp_config.json" }
+    }
+  }
+}
