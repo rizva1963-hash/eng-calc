@@ -77,6 +77,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .flash{background:var(--surface);border-radius:14px;min-height:120px;display:grid;place-items:center;font:700 clamp(24px,8vw,44px) var(--f-ui);letter-spacing:.3em;font-variant-numeric:tabular-nums;padding:10px;text-align:center}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .opts .btn{font-variant-numeric:tabular-nums;letter-spacing:.08em}
+.twister{background:var(--surface);border-radius:14px;padding:26px 20px;font:700 clamp(20px,5.6vw,30px)/1.4 var(--f-read);text-wrap:balance}
+.big-t{font:700 30px var(--f-display);font-variant-numeric:tabular-nums}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.steps li.now{font-weight:600}.steps li.now::marker{color:var(--focus)}
+audio{width:100%}
 /* knowledge */
 details{border-top:1px solid var(--line);padding:12px 0}
 details:last-of-type{border-bottom:1px solid var(--line)}
@@ -97,8 +102,8 @@ a{color:var(--accent)}
 .hist .h .bar{height:8px}.hist .h b{text-align:right}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;
   padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
-nav.tabs div{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
-nav.tabs button{border:0;background:none;padding:10px 2px 9px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-top:3px solid transparent;margin-top:-1px}
+nav.tabs div{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs button{border:0;background:none;padding:10px 1px 9px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border-top:3px solid transparent;margin-top:-1px}
 nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--focus);font-weight:700}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
@@ -197,6 +202,59 @@ nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--foc
       </div>
       <button class="btn primary" id="fl-go">Показать</button>
     </div>
+  </section>
+
+  <!-- ============ SPEECH ============ -->
+  <section id="v-speech" class="stack" hidden>
+    <h1>Речь и дикция</h1>
+    <div class="chips" id="sp-chips">
+      <button class="chip" data-sp="warm" aria-pressed="true">Разминка</button>
+      <button class="chip" data-sp="tw" aria-pressed="false">Скороговорки</button>
+      <button class="chip" data-sp="aloud" aria-pressed="false">Чтение вслух</button>
+      <button class="chip" data-sp="tips" aria-pressed="false">Правила</button>
+    </div>
+
+    <div id="sp-warm" class="stack">
+      <p class="muted small">Три минуты артикуляционной гимнастики перед чтением вслух, выступлением или записью. Делайте перед зеркалом, движения крупные.</p>
+      <div class="row" style="justify-content:space-between"><h2 id="wm-title">Готовы?</h2><span class="big-t" id="wm-sec"></span></div>
+      <p id="wm-desc">Нажмите «Начать», приложение проведёт по семи упражнениям и само переключит шаги.</p>
+      <div class="bar"><i id="wm-bar"></i></div>
+      <div class="row"><button class="btn primary" id="wm-go">Начать разминку</button></div>
+      <ol class="steps small" id="wm-list"></ol>
+    </div>
+
+    <div id="sp-tw" class="stack" hidden>
+      <p class="muted small">Три прохода: медленно с преувеличенной артикуляцией, в обычном темпе, быстро. Сбились на быстром — вернитесь к медленному. Чистота важнее скорости.</p>
+      <div class="row" style="justify-content:space-between"><span class="tag y" id="tw-tag"></span><span class="small muted" id="tw-n"></span></div>
+      <div class="twister" id="tw-text"></div>
+      <div class="row" style="justify-content:space-between"><span class="big-t"><span id="tw-time">0.0</span> с</span><span class="small muted" id="tw-best"></span></div>
+      <div class="row"><button class="btn primary" id="tw-go">Старт — говорю</button><button class="btn" id="tw-next">Следующая</button></div>
+      <p class="small muted">Нажмите «Старт», произнесите три раза подряд без ошибок и нажмите «Стоп». Лучшее время сохранится.</p>
+    </div>
+
+    <div id="sp-aloud" class="stack" hidden>
+      <p class="muted small">Суфлёр: подсветка задаёт темп, вы читаете вслух вместе с ней. Дикторы говорят примерно 100–130 слов в минуту. Договаривайте окончания, на точке делайте паузу и вдох.</p>
+      <label class="f">Текст<select id="al-sel"></select></label>
+      <div class="paper pacer" id="al-text"></div>
+      <div class="row"><label class="f">Темп речи, слов в минуту <output id="al-wpm-o"></output><input type="range" id="al-wpm" min="70" max="200" step="5" value="110"></label></div>
+      <div class="row"><button class="btn primary" id="al-play">Старт</button><button class="btn" id="al-reset">Сначала</button></div>
+    </div>
+
+    <div id="sp-tips" class="stack" hidden>
+      <div>
+        <details open><summary>Дыхание — опора голоса</summary><div class="body"><p>Дышите животом: на вдохе живот идёт вперёд, плечи неподвижны. Говорите на выдохе и добирайте воздух на паузах, а не посреди фразы. Упражнение: вдох на 4 счёта, выдох со звуком «с» на 8, потом на 12 и 16.</p></div></details>
+        <details><summary>Артикуляция: рот должен работать</summary><div class="body"><p>Невнятная речь почти всегда означает малоподвижные губы и челюсть. Читайте абзац, утрируя каждое движение, как для человека, читающего по губам. Затем прочтите нормально: чёткость останется.</p><p>Упражнение с пробкой или карандашом в зубах даёт тот же эффект, но не увлекайтесь: достаточно минуты.</p></div></details>
+        <details><summary>Окончания и согласные</summary><div class="body"><p>Чаще всего «съедаются» концы слов и стечения согласных. Проговаривайте слоговые ряды: птка-птко-птку-пткы, бдга-бдго-бдгу-бдгы, ткпа-ткпо-ткпу-ткпы, сначала медленно, потом ускоряясь.</p></div></details>
+        <details><summary>Темп и паузы</summary><div class="body"><p>Про себя взрослые читают заметно быстрее, чем вслух: по данным Брисбарта, 238 против 183 слов в минуту в английском. Когда слушателю нужно понять и запомнить, говорите ещё медленнее. Пауза перед важным словом работает сильнее повышения голоса.</p></div></details>
+        <details><summary>Интонация и логическое ударение</summary><div class="body"><p>В каждой фразе есть одно главное слово. Найдите его до чтения и выделите паузой или замедлением. Прочтите одну фразу несколько раз, перенося ударение на разные слова, и услышите, как меняется смысл.</p></div></details>
+        <details><summary>Слушайте себя в записи</summary><div class="body"><p>Мы слышим свой голос искажённо. Запись показывает реальную картину: темп, слова-паразиты, проглоченные звуки. Записывайте минуту чтения раз в неделю и сравнивайте.</p></div></details>
+      </div>
+    </div>
+
+    <h2>Запись</h2>
+    <p class="muted small">Запишите скороговорку или абзац и сразу прослушайте. Запись никуда не отправляется и исчезает при закрытии страницы.</p>
+    <div class="row"><button class="btn" id="rec-btn">Записать себя</button><span class="small" id="rec-msg"></span></div>
+    <audio id="rec-audio" controls hidden></audio>
   </section>
 
   <!-- ============ BASE ============ -->
@@ -331,7 +389,7 @@ nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--foc
 </div>
 
 <nav class="tabs" aria-label="Разделы"><div>
-  <button data-go="test">Замер</button><button data-go="train">Тренажёры</button><button data-go="base">База</button><button data-go="progress">Прогресс</button>
+  <button data-go="test">Замер</button><button data-go="train">Тренажёры</button><button data-go="speech">Речь</button><button data-go="base">База</button><button data-go="progress">Прогресс</button>
 </div></nav>
 
 <script>
@@ -358,7 +416,7 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
 /* ---------- routing ---------- */
-const VIEWS=["test","train","base","progress"];
+const VIEWS=["test","train","speech","base","progress"];
 function show(v){
   if(!VIEWS.includes(v))v="test";
   stopAll();
@@ -439,7 +497,7 @@ $("tr-chips").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;stopAll
   if(cur==="schulte"&&!$("sc-grid").children.length)scNew();
   if(cur==="pacer"&&!$("pc-text").children.length)pcReset()};
 function bind(id,fn){const el=$(id),o=$(id+"-o");const f=()=>{o.textContent=el.value;fn&&fn()};el.addEventListener("input",f);f()}
-function stopAll(){rsStop();pcStop();clearInterval(sc.tm);clearTimeout(fl.tm)}
+function stopAll(){spStop();rsStop();pcStop();clearInterval(sc.tm);clearTimeout(fl.tm)}
 
 /* ---------- RSVP ---------- */
 const rs={w:[],i:0,tm:0,on:false,t0:0,n0:0};
@@ -518,6 +576,57 @@ $("fl-go").onclick=()=>{if(fl.busy)return;fl.busy=true;$("fl-opts").innerHTML=""
           if(ok){fl.run++;if(fl.run>=3){S.fl=Math.min(12,S.fl+1);fl.run=0}}else{fl.run=0;S.fl=Math.max(3,S.fl-1)}
           save();flUI();log({k:"flash",n:S.fl,ok:ok})};
         $("fl-opts").appendChild(b)})},+$("fl-ms").value)},600)};
+
+/* ---------- speech ---------- */
+const WARM=[["Дыхание животом","Вдох носом на 4 счёта, живот вперёд. Выдох со звуком «с-с-с» на 8 счётов.",40],["Челюсть","Медленно и широко открывайте рот на «а», затем закрывайте.",20],["Губы: трубочка и улыбка","Вытяните губы вперёд, затем растяните в улыбку. Чередуйте.",20],["Язык: «лошадка»","Цокайте языком, меняя форму губ от «о» до «и».",20],["Язык: уколы","Упирайтесь кончиком языка то в левую, то в правую щёку.",20],["Гласные","Тяните сначала беззвучно, потом вслух: и — э — а — о — у — ы. Рот работает широко.",30],["Слоги","Чётко, с ударением на последний слог: птка-птко-птку-пткы, бдга-бдго-бдгу-бдгы.",30]];
+const TW=[["Р · Л","Карл у Клары украл кораллы, а Клара у Карла украла кларнет."],["Р · В","На дворе трава, на траве дрова. Не руби дрова на траве двора."],["С · Ш","Шла Саша по шоссе и сосала сушку."],["Ш","Шесть мышат в камышах шуршат."],["П · Т · К","От топота копыт пыль по полю летит."],["Б · П","Бык тупогуб, тупогубенький бычок, у быка бела губа была тупа."],["Г · К · Р","Краб крабу сделал грабли, подарил грабли крабу: грабь граблями гравий, краб."],["Ч · Щ","Щуку я тащу, тащу, щуку я не упущу."],["Ж","Жужжит жужелица, жужжит, да не кружится."],["Л · В","Корабли лавировали, лавировали, да не вылавировали."],["Сложная","Сшит колпак не по-колпаковски, вылит колокол не по-колоколовски."],["Сложная","Всех скороговорок не перескороговоришь, не перевыскороговоришь."]];
+if(!S.tw)S.tw={};
+const sp={wi:-1,wt:0,left:0,ti:0,t0:0,tt:0,al:[],ai:0,at:0,aon:false};
+$("wm-list").innerHTML=WARM.map(w=>"<li>"+esc(w[0])+' <span class="muted">· '+w[2]+" с</span></li>").join("");
+const wmTotal=WARM.reduce((a,w)=>a+w[2],0);
+function wmStep(i){sp.wi=i;[...$("wm-list").children].forEach((li,k)=>li.classList.toggle("now",k===i));
+  if(i>=WARM.length){wmStop();$("wm-title").textContent="Разминка окончена";$("wm-desc").textContent="Теперь скороговорки или чтение вслух.";$("wm-bar").style.width="100%";log({k:"warm"});return}
+  $("wm-title").textContent=WARM[i][0];$("wm-desc").textContent=WARM[i][1];sp.left=WARM[i][2];$("wm-sec").textContent=sp.left}
+function wmStop(){clearInterval(sp.wt);sp.wt=0;$("wm-go").textContent="Начать разминку";$("wm-sec").textContent=""}
+$("wm-go").onclick=()=>{if(sp.wt){wmStop();return}$("wm-go").textContent="Остановить";wmStep(0);
+  sp.wt=setInterval(()=>{sp.left--;$("wm-sec").textContent=sp.left;
+    const done=WARM.slice(0,sp.wi).reduce((a,w)=>a+w[2],0)+WARM[sp.wi][2]-sp.left;$("wm-bar").style.width=(done/wmTotal*100)+"%";
+    if(sp.left<=0)wmStep(sp.wi+1)},1000)};
+function twShow(){const t=TW[sp.ti];$("tw-tag").textContent=t[0];$("tw-text").textContent=t[1];$("tw-n").textContent=(sp.ti+1)+" из "+TW.length;
+  $("tw-time").textContent="0.0";$("tw-best").textContent=S.tw[sp.ti]?"лучшее: "+S.tw[sp.ti].toFixed(1)+" с":""}
+function twStop(saveIt){if(!sp.tt)return;clearInterval(sp.tt);sp.tt=0;$("tw-go").textContent="Старт — говорю";
+  if(saveIt){const t=(performance.now()-sp.t0)/1000;$("tw-time").textContent=t.toFixed(1);
+    if(t>1&&(!S.tw[sp.ti]||t<S.tw[sp.ti])){S.tw[sp.ti]=+t.toFixed(1)}log({k:"twister",i:sp.ti,t:+t.toFixed(1)});
+    $("tw-best").textContent=S.tw[sp.ti]?"лучшее: "+S.tw[sp.ti].toFixed(1)+" с":""}}
+$("tw-go").onclick=()=>{if(sp.tt){twStop(true);return}sp.t0=performance.now();$("tw-go").textContent="Стоп";
+  sp.tt=setInterval(()=>$("tw-time").textContent=((performance.now()-sp.t0)/1000).toFixed(1),100)};
+$("tw-next").onclick=()=>{twStop(false);sp.ti=(sp.ti+1)%TW.length;twShow()};
+TEXTS.forEach((x,i)=>$("al-sel").add(new Option(x.t,i)));
+bind("al-wpm");
+function alStop(){sp.aon=false;clearTimeout(sp.at);$("al-play").textContent="Старт"}
+function alReset(){alStop();$("al-text").innerHTML=TEXTS[+$("al-sel").value].p.map(p=>"<p>"+words(p).map(w=>"<span>"+esc(w)+"</span>").join(" ")+"</p>").join("");
+  sp.al=[...$("al-text").querySelectorAll("span")];sp.ai=0;$("al-text").scrollTop=0}
+function alTick(){if(!sp.aon)return;const box=$("al-text");sp.al.forEach(s=>s.classList.remove("on"));
+  if(sp.ai>=sp.al.length){alStop();sp.ai=0;log({k:"aloud",wpm:+$("al-wpm").value});return}
+  const ch=sp.al.slice(sp.ai,sp.ai+2);ch.forEach(s=>s.classList.add("on"));box.scrollTop=ch[0].offsetTop-box.clientHeight/2;
+  const last=ch[ch.length-1].textContent;let k=ch.length;if(/[.!?…]["»)]?$/.test(last))k+=1.2;else if(/[,;:—–]$/.test(last))k+=.5;
+  sp.ai+=2;sp.at=setTimeout(alTick,60000/+$("al-wpm").value*k)}
+$("al-play").onclick=()=>{if(sp.aon){alStop();return}if(!sp.al.length)alReset();sp.aon=true;$("al-play").textContent="Пауза";alTick()};
+$("al-reset").onclick=alReset;$("al-sel").onchange=alReset;
+function spStop(){wmStop();twStop(false);alStop()}
+$("sp-chips").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;spStop();
+  document.querySelectorAll("#sp-chips .chip").forEach(c=>c.setAttribute("aria-pressed",c===b));
+  ["warm","tw","aloud","tips"].forEach(x=>$("sp-"+x).hidden=x!==b.dataset.sp);
+  if(b.dataset.sp==="aloud"&&!sp.al.length)alReset()};
+let mr=null,chunks=[];
+$("rec-btn").onclick=async()=>{if(mr&&mr.state==="recording"){mr.stop();return}
+  try{const st=await navigator.mediaDevices.getUserMedia({audio:true});mr=new MediaRecorder(st);chunks=[];
+    mr.ondataavailable=e=>chunks.push(e.data);
+    mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());const a=$("rec-audio");a.src=URL.createObjectURL(new Blob(chunks,{type:mr.mimeType}));a.hidden=false;
+      $("rec-btn").textContent="Записать ещё раз";$("rec-msg").textContent="Готово, слушайте."};
+    mr.start();$("rec-btn").textContent="Остановить запись";$("rec-msg").textContent="Идёт запись…"}
+  catch(e){$("rec-msg").textContent="Микрофон на этой странице недоступен. Запишите себя на диктофон телефона и прослушайте."}};
+twShow();
 
 /* ---------- boot ---------- */
 flUI();refresh();rsReset();
