@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#131C33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Темп">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}</style>
+<title>Темп — тренажёр скорочтения</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=PT+Serif:wght@400;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: one column tool, max 720px, bottom tab bar; the reading surface is the only "paper" card, everything else sits flat on the ground. */
+:root{
+  --bg:#EDF0F5; --surface:#FFFFFF; --ink:#131C33; --muted:#5A6781; --line:#D3D9E4;
+  --accent:#2346D4; --accent-ink:#FFFFFF; --focus:#D9352A; --good:#1B7F4D; --soft:#E1E7F8;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-ui:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-read:"PT Serif",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0D1220; --surface:#171E31; --ink:#E7EBF4; --muted:#97A3BC; --line:#2A3450;
+  --accent:#8198FF; --accent-ink:#0D1220; --focus:#FF7163; --good:#5FD29A; --soft:#1F294A; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0D1220; --surface:#171E31; --ink:#E7EBF4; --muted:#97A3BC; --line:#2A3450;
+  --accent:#8198FF; --accent-ink:#0D1220; --focus:#FF7163; --good:#5FD29A; --soft:#1F294A; color-scheme:dark }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-ui);-webkit-text-size-adjust:100%}
+.wrap{max-width:720px;margin:0 auto;padding-block:20px 110px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.2}
+h1{font:700 26px/1.15 var(--f-display);letter-spacing:-.01em}
+h2{font:700 19px/1.25 var(--f-ui)}
+h3{font:600 16px/1.3 var(--f-ui)}
+p{margin:0}
+.muted{color:var(--muted)} .small{font-size:14px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.brand b{font:700 18px var(--f-display)} .brand b i{font-style:normal;color:var(--focus)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row>*{min-width:0}
+button,select,textarea,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 16px;font-weight:600;cursor:pointer;min-height:46px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:focus-visible,.chip:focus-visible,nav button:focus-visible,summary:focus-visible,.cell:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);background:transparent;border-radius:99px;padding:8px 14px;cursor:pointer;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{min-height:120px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted)}
+.row label.f{flex:1 1 180px}
+label.f output{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats div{padding:12px 10px 12px 0;min-width:0}
+.stats div+div{padding-left:12px;border-left:1px solid var(--line)}
+.stats b{display:block;font:700 22px var(--f-display);font-variant-numeric:tabular-nums}
+.stats span{font-size:13px;color:var(--muted)}
+.paper{background:var(--surface);border-radius:14px;padding:22px 20px;font:18px/1.65 var(--f-read)}
+.paper p+p{margin-top:.8em}
+.q{display:flex;flex-direction:column;gap:8px}
+.q button{text-align:left;font-weight:500}
+.q button.sel{border-color:var(--accent);background:var(--soft)}
+.q button.ok{border-color:var(--good)} .q button.bad{border-color:var(--focus)}
+/* RSVP */
+.rsvp{background:var(--surface);border-radius:14px;padding:34px 12px;position:relative;overflow:hidden}
+.rsvp::before,.rsvp::after{content:"";position:absolute;left:calc(12px + (100% - 24px)*.35);width:2px;height:12px;background:var(--line)}
+.rsvp::before{top:12px}.rsvp::after{bottom:12px}
+.word{display:grid;grid-template-columns:minmax(0,35fr) auto minmax(0,65fr);font:700 clamp(22px,6.2vw,40px)/1.3 var(--f-read);white-space:nowrap;min-height:1.3em}
+.word .l{text-align:right}.word .p{color:var(--focus)}
+.word.multi{display:block;text-align:center;white-space:normal}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);width:0}
+/* pacer */
+.pacer{max-height:46vh;overflow-y:auto;position:relative}
+.pacer span.on{background:var(--soft);box-shadow:0 2px 0 var(--focus);border-radius:3px}
+/* schulte */
+.grid{display:grid;gap:6px;max-width:440px;width:100%;margin:0 auto}
+.cell{aspect-ratio:1;border:1px solid var(--line);background:var(--surface);border-radius:8px;font:600 clamp(16px,5vw,24px) var(--f-ui);font-variant-numeric:tabular-nums;cursor:pointer;padding:0}
+.cell.hit{background:var(--soft)} .cell.miss{border-color:var(--focus)}
+.cell.center{box-shadow:inset 0 0 0 2px var(--focus)}
+/* flash */
+.flash{background:var(--surface);border-radius:14px;min-height:120px;display:grid;place-items:center;font:700 clamp(24px,8vw,44px) var(--f-ui);letter-spacing:.3em;font-variant-numeric:tabular-nums;padding:10px;text-align:center}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opts .btn{font-variant-numeric:tabular-nums;letter-spacing:.08em}
+/* knowledge */
+details{border-top:1px solid var(--line);padding:12px 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--muted);font-weight:400}
+details[open] summary::after{content:"–"}
+details .body{padding-top:10px;display:flex;flex-direction:column;gap:10px;max-width:65ch}
+details ul,details ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:4px;margin-right:6px}
+.tag.y{background:var(--soft);color:var(--accent)} .tag.n{border:1px solid var(--focus);color:var(--focus)} .tag.m{border:1px solid var(--line);color:var(--muted)}
+.tw{overflow-x:auto} table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500}
+a{color:var(--accent)}
+.hist{display:flex;flex-direction:column;gap:8px}
+.hist .h{display:grid;grid-template-columns:64px 1fr 76px;gap:10px;align-items:center;font-size:14px;font-variant-numeric:tabular-nums}
+.hist .h .bar{height:8px}.hist .h b{text-align:right}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+nav.tabs div{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs button{border:0;background:none;padding:10px 2px 9px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-top:3px solid transparent;margin-top:-1px}
+nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--focus);font-weight:700}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="brand"><b>Темп<i>.</i></b><span class="muted small" id="streak"></span></div>
+
+  <!-- ============ TEST ============ -->
+  <section id="v-test" class="stack">
+    <div id="t-home" class="stack">
+      <h1>Читайте быстрее и&nbsp;понимайте, что прочли</h1>
+      <p class="muted">Скорость без понимания ничего не стоит. Поэтому здесь считается эффективная скорость: слова в минуту, умноженные на долю верных ответов по тексту.</p>
+      <div class="stats">
+        <div><b id="s-eff">—</b><span>эффективная скорость, сл/мин</span></div>
+        <div><b id="s-sch">—</b><span>лучшая таблица Шульте 5×5, с</span></div>
+        <div><b id="s-fl">—</b><span>объём вспышки, знаков</span></div>
+      </div>
+      <h2>Замер скорости</h2>
+      <p class="muted small">Читайте в обычном темпе, как читаете для себя. После текста будут четыре вопроса. Занимает около двух минут.</p>
+      <label class="f">Текст<select id="t-sel"></select></label>
+      <div class="row"><button class="btn primary" id="t-start">Начать замер</button><button class="btn" data-go="train">К тренажёрам</button></div>
+      <p class="small muted">Ориентир: взрослые читают про себя по-русски в среднем около 180–190 слов в минуту (тест IReST), по-английски 238 (метаанализ Брисбарта, 190 исследований).</p>
+    </div>
+    <div id="t-read" class="stack" hidden>
+      <div class="paper" id="t-text"></div>
+      <button class="btn primary" id="t-done">Дочитал — к вопросам</button>
+    </div>
+    <div id="t-quiz" class="stack" hidden>
+      <h2>Что вы запомнили</h2>
+      <div id="t-qs" class="stack"></div>
+      <button class="btn primary" id="t-check" disabled>Показать результат</button>
+    </div>
+    <div id="t-res" class="stack" hidden>
+      <h2 id="r-title"></h2>
+      <div class="stats">
+        <div><b id="r-wpm"></b><span>слов в минуту</span></div>
+        <div><b id="r-comp"></b><span>понимание</span></div>
+        <div><b id="r-eff"></b><span>эффективная скорость</span></div>
+      </div>
+      <p id="r-note"></p>
+      <div class="row"><button class="btn primary" id="r-again">Ещё замер</button><button class="btn" data-go="train">Тренироваться</button></div>
+    </div>
+  </section>
+
+  <!-- ============ TRAIN ============ -->
+  <section id="v-train" class="stack" hidden>
+    <h1>Тренажёры</h1>
+    <div class="chips" id="tr-chips">
+      <button class="chip" data-tr="rsvp" aria-pressed="true">Поток слов</button>
+      <button class="chip" data-tr="pacer" aria-pressed="false">Указка</button>
+      <button class="chip" data-tr="schulte" aria-pressed="false">Таблица Шульте</button>
+      <button class="chip" data-tr="flash" aria-pressed="false">Вспышка</button>
+    </div>
+    <div id="src-box" class="stack">
+      <label class="f">Что читаем<select id="src"></select></label>
+      <textarea id="own" placeholder="Вставьте сюда свой текст: статью, главу, конспект" hidden></textarea>
+    </div>
+
+    <div id="tr-rsvp" class="stack">
+      <p class="muted small">Слова появляются по одному в одной точке, красная буква — место, куда смотреть. Полезно, чтобы почувствовать темп и удерживать внимание. Понимание сложных текстов в таком режиме хуже, чем на странице, поэтому кнопка «назад» здесь не случайно.</p>
+      <div class="rsvp"><div class="word" id="rs-word"><span class="l">Нажмите&nbsp;</span><span class="p">«</span><span class="r">Старт»</span></div></div>
+      <div class="bar"><i id="rs-bar"></i></div>
+      <div class="row">
+        <label class="f">Темп <output id="rs-wpm-o"></output><input type="range" id="rs-wpm" min="120" max="800" step="10" value="250"></label>
+        <label class="f">Слов за показ <output id="rs-n-o"></output><input type="range" id="rs-n" min="1" max="3" step="1" value="1"></label>
+      </div>
+      <div class="row"><button class="btn primary" id="rs-play">Старт</button><button class="btn" id="rs-back">← 10 слов</button><button class="btn" id="rs-reset">Сначала</button></div>
+    </div>
+
+    <div id="tr-pacer" class="stack" hidden>
+      <p class="muted small">Подсветка ведёт взгляд по тексту с заданной скоростью, как палец или карандаш в методе Эвелин Вуд. Ставьте темп на 10–20% выше комфортного и держитесь за подсветкой.</p>
+      <div class="paper pacer" id="pc-text"></div>
+      <div class="row">
+        <label class="f">Темп <output id="pc-wpm-o"></output><input type="range" id="pc-wpm" min="120" max="700" step="10" value="230"></label>
+        <label class="f">Ширина захвата, слов <output id="pc-n-o"></output><input type="range" id="pc-n" min="1" max="6" step="1" value="3"></label>
+      </div>
+      <div class="row"><button class="btn primary" id="pc-play">Старт</button><button class="btn" id="pc-reset">Сначала</button></div>
+    </div>
+
+    <div id="tr-schulte" class="stack" hidden>
+      <p class="muted small">Смотрите в центр таблицы и находите числа по порядку боковым зрением, стараясь не водить глазами. Классическое упражнение на внимание и поле зрения. Хороший результат для 5×5 — быстрее 30 секунд.</p>
+      <div class="row"><div class="chips" id="sc-sizes"></div></div>
+      <div class="row" style="justify-content:space-between"><span>Ищем: <b id="sc-next">1</b></span><span class="muted" style="font-variant-numeric:tabular-nums"><span id="sc-time">0.0</span> с · ошибок <span id="sc-err">0</span></span></div>
+      <div class="grid" id="sc-grid"></div>
+      <p id="sc-msg" class="small"></p>
+      <button class="btn primary" id="sc-new">Новая таблица</button>
+    </div>
+
+    <div id="tr-flash" class="stack" hidden>
+      <p class="muted small">Число появляется на долю секунды. Смотрите в центр и схватывайте его целиком, не читая по цифре. Три верных ответа подряд — ряд становится длиннее.</p>
+      <div class="flash" id="fl-box">· · ·</div>
+      <div class="opts" id="fl-opts"></div>
+      <div class="row">
+        <label class="f">Время показа, мс <output id="fl-ms-o"></output><input type="range" id="fl-ms" min="100" max="1000" step="50" value="400"></label>
+        <span class="small muted">Знаков: <b id="fl-lvl">4</b> · серия <b id="fl-run">0</b></span>
+      </div>
+      <button class="btn primary" id="fl-go">Показать</button>
+    </div>
+  </section>
+
+  <!-- ============ BASE ============ -->
+  <section id="v-base" class="stack" hidden>
+    <h1>База знаний</h1>
+    <p class="muted">Собрано из исследований чтения и главных книг по теме. Метки показывают, что подтверждено экспериментами, а что нет.</p>
+
+    <h2>Что на самом деле ускоряет чтение</h2>
+    <div>
+      <details open><summary>Главный вывод науки за 60 лет</summary><div class="body">
+        <p>В 2016 году пятеро ведущих исследователей чтения (Кит Рейнер, Элизабет Шоттер, Майкл Мэссон, Мэри Поттер, Ребекка Трейман) опубликовали большой обзор «So Much to Read, So Little Time». Их выводы до сих пор никто не опроверг:</p>
+        <ul>
+          <li>Опытный взрослый читает 200–400 слов в минуту. Удвоить или утроить скорость и сохранить то же понимание не получается: скорость и точность обмениваются друг на друга.</li>
+          <li>Движения глаз занимают не больше 10% времени чтения. Узкое место не в глазах, а в узнавании слов и сборке смысла.</li>
+          <li>Быстрее и с пониманием читает тот, у кого больше словарь, больше знаний по теме и больше практики.</li>
+          <li>Беглый просмотр (скимминг) — законный и полезный навык, когда полное понимание не нужно.</li>
+          <li>Люди, которые «читают» необычно быстро, как правило, уже хорошо знают тему.</li>
+        </ul></div></details>
+      <details><summary>Как работают глаза: фиксации, саккады, поле восприятия</summary><div class="body">
+        <p>Глаза движутся прыжками (саккадами) по 7–9 знаков и останавливаются на 200–250 мс. Чётко мы видим только центр, около 7–8 знаков. Полезное поле восприятия у читающих слева направо — 3–4 знака влево и до 14–15 вправо от точки взгляда.</p>
+        <p>Это поле ограничено устройством сетчатки и вниманием. Прочесть абзац или страницу одним взглядом физически нельзя, и тренировкой это не меняется. Тренировкой меняется другое: насколько эффективно вы используете уже доступное поле и как быстро узнаёте слова.</p></div></details>
+      <details><summary>Сколько читают обычные люди</summary><div class="body">
+        <div class="tw"><table>
+          <tr><th>Что</th><th>Слов в минуту</th><th>Источник</th></tr>
+          <tr><td>Английский, нон-фикшн, про себя</td><td>238</td><td>Брисбарт, 2019</td></tr>
+          <tr><td>Английский, художественный</td><td>260</td><td>Брисбарт, 2019</td></tr>
+          <tr><td>Английский, вслух</td><td>183</td><td>Брисбарт, 2019</td></tr>
+          <tr><td>Русский, стандартный тест</td><td>≈184</td><td>IReST, 2012</td></tr>
+        </table></div>
+        <p>Русские слова длиннее английских, поэтому слов в минуту получается меньше при той же скорости передачи смысла. Сравнивайте себя с собой, а не с англоязычными цифрами из книг.</p></div></details>
+      <details><summary>Пять «передач» чтения по Рональду Карверу</summary><div class="body">
+        <p>Психолог Рональд Карвер показал, что у чтения нет одной правильной скорости. Есть пять режимов, и умелый читатель переключает их по задаче:</p>
+        <div class="tw"><table>
+          <tr><th>Режим</th><th>Сл/мин (англ.)</th><th>Задача</th></tr>
+          <tr><td>Сканирование</td><td>≈600</td><td>найти слово или факт</td></tr>
+          <tr><td>Скимминг</td><td>≈450</td><td>уловить общий смысл</td></tr>
+          <tr><td>Обычное чтение</td><td>≈300</td><td>понять каждую мысль</td></tr>
+          <tr><td>Изучение</td><td>≈200</td><td>выучить, сдать экзамен</td></tr>
+          <tr><td>Запоминание</td><td>≈138</td><td>воспроизвести близко к тексту</td></tr>
+        </table></div></div></details>
+    </div>
+
+    <h2>Приёмы</h2>
+    <div>
+      <details><summary><span><span class="tag y">работает</span>Цель до первой строки</span></summary><div class="body">
+        <p>Перед чтением сформулируйте, что вам нужно от текста: один вопрос или решение. Цель определяет режим. Статью «на всякий случай» достаточно просмотреть, договор читают медленно. Большая часть экономии времени — это правильный выбор, что вообще не читать подробно.</p></div></details>
+      <details><summary><span><span class="tag y">работает</span>Предпросмотр: сначала карта, потом дорога</span></summary><div class="body">
+        <p>За 2–5 минут пройдите: заголовок, оглавление, введение, подзаголовки, выделения, рисунки, выводы. Мортимер Адлер называл это инспекционным чтением. Знание структуры ускоряет последующее чтение, потому что мозг раскладывает новое по готовым полкам.</p></div></details>
+      <details><summary><span><span class="tag y">работает</span>Умный скимминг</span></summary><div class="body">
+        <p>В экспериментах Даггана и Пейна лучше всех при нехватке времени понимали те, кто читал начало каждого абзаца и переходил дальше, как только абзац переставал давать новое. Правило: первый абзац и выводы целиком, в середине — первые предложения, задерживаться только там, где есть ответ на ваш вопрос.</p></div></details>
+      <details><summary><span><span class="tag y">работает</span>SQ3R и активное припоминание</span></summary><div class="body">
+        <p>Метод Фрэнсиса Робинсона (1946): Survey — просмотреть, Question — задать вопросы, Read — прочитать, Recite — пересказать, не глядя, Review — повторить. Самая сильная часть — пересказ: попытка вспомнить закрепляет материал лучше повторного чтения.</p></div></details>
+      <details><summary><span><span class="tag y">работает</span>Интегральный алгоритм чтения (Андреев и Хромов)</span></summary><div class="body">
+        <p>Главный приём советской школы быстрого чтения. Любой текст читается с готовой сеткой из семи блоков, которые вы заполняете по ходу:</p>
+        <ol><li>Название</li><li>Автор</li><li>Источник и его данные</li><li>Основное содержание, тема</li><li>Фактические данные</li><li>Особенности материала, что спорно</li><li>Новизна и что можно применить</li></ol>
+        <p>По сути это та же установка на цель и активная обработка, только в виде привычки.</p></div></details>
+      <details><summary><span><span class="tag y">работает</span>Словарь, знания и объём чтения</span></summary><div class="body">
+        <p>Самый надёжный и самый медленный способ. Знакомое слово узнаётся за доли секунды, на редком взгляд застревает. В опыте Рехт и Лесли (1988) слабые читатели, знавшие бейсбол, поняли текст о бейсболе лучше сильных читателей-новичков. Читайте много по своей теме: каждая следующая книга идёт быстрее предыдущей.</p></div></details>
+      <details><summary><span><span class="tag m">частично</span>Указка: палец, карандаш, подсветка</span></summary><div class="body">
+        <p>Приём Эвелин Вуд. Указка задаёт ритм и не даёт вниманию уплывать, многим это добавляет 10–20% темпа на простых текстах. Обещанных Вуд тысяч слов в минуту она не даёт: в проверках такие читатели переходили на скимминг и теряли детали.</p></div></details>
+      <details><summary><span><span class="tag m">частично</span>Таблицы Шульте и расширение поля зрения</span></summary><div class="body">
+        <p>Хорошо тренируют концентрацию и скорость зрительного поиска, это полезная разминка перед чтением. Прямого доказательства, что они расширяют поле восприятия при чтении текста, нет.</p></div></details>
+      <details><summary><span><span class="tag m">частично</span>Поток слов (RSVP, Spritz)</span></summary><div class="body">
+        <p>Слова по одному в одной точке. Короткие простые тексты так читаются быстро. Но исследование Шоттер, Рейнера и Тран (2014) показало: без возможности вернуться глазами назад понимание падает. Интересный свежий результат 2025 года: взрослые с СДВГ в режиме RSVP понимали текст лучше, чем при обычном чтении, а у остальных было наоборот.</p></div></details>
+      <details><summary><span><span class="tag n">не работает</span>Подавление внутреннего проговаривания</span></summary><div class="body">
+        <p>Внутренняя речь — часть механизма понимания, а не помеха. Когда её глушат счётом вслух или постукиванием, понимание сложных текстов ухудшается. Полностью убрать субвокализацию нельзя: мышцы гортани слегка активны даже у очень быстрых читателей.</p></div></details>
+      <details><summary><span><span class="tag n">не работает</span>Запрет на возвраты глазами</span></summary><div class="body">
+        <p>10–15% движений глаз при чтении направлены назад, и это исправление ошибок понимания. Если их запретить, читатель чаще неверно понимает фразу. Лишние возвраты лечатся не запретом, а вниманием и предпросмотром.</p></div></details>
+      <details><summary><span><span class="tag n">не работает</span>Фотографическое чтение, чтение по диагонали страницы, Bionic Reading</span></summary><div class="body">
+        <p>PhotoReading проверяли в NASA (отчёт Макнамары, 2000): выигрыша нет. Чтение «зигзагом» по странице — это скимминг с соответствующей потерей деталей. Выделение начала слов жирным (Bionic Reading) в независимых проверках скорости и понимания не улучшило.</p></div></details>
+    </div>
+
+    <h2>Авторы и книги</h2>
+    <div>
+      <details><summary>Наука о чтении</summary><div class="body"><ul>
+        <li><b>Кит Рейнер</b> и соавторы — обзор «So Much to Read, So Little Time» (2016). Лучший единый источник.</li>
+        <li><b>Станислас Деан</b>, «Reading in the Brain» — как мозг узнаёт слова.</li>
+        <li><b>Марк Зайденберг</b>, «Language at the Speed of Sight» — почему скорочтение упирается в язык.</li>
+        <li><b>Дэниел Уиллингем</b>, «The Reading Mind» — роль знаний и словаря.</li>
+        <li><b>Марианна Вулф</b>, «Пруст и кальмар», «Reader, Come Home» — глубокое чтение в цифровую эпоху.</li>
+        <li><b>Марк Брисбарт</b> — метаанализ скорости чтения (2019).</li>
+      </ul></div></details>
+      <details><summary>Как читать с толком</summary><div class="body"><ul>
+        <li><b>Мортимер Адлер</b>, «Как читать книги» — четыре уровня чтения. Если выбирать одну книгу, то эту.</li>
+        <li><b>Фрэнсис Робинсон</b>, «Effective Study» — метод SQ3R.</li>
+        <li><b>О. Андреев, Л. Хромов</b>, «Техника быстрого чтения» — интегральный алгоритм, упражнения.</li>
+        <li><b>Питер Браун и др.</b>, «Запомнить всё» (Make It Stick) — припоминание вместо перечитывания.</li>
+      </ul></div></details>
+      <details><summary>Классика скорочтения (читать критически)</summary><div class="body"><ul>
+        <li><b>Эвелин Вуд</b>, Reading Dynamics (1959) — указка, чтение группами слов. Основа всех курсов.</li>
+        <li><b>Тони Бьюзен</b>, «Скорочтение» — упражнения, метроном, интеллект-карты.</li>
+        <li><b>Питер Камп</b>, «Скорочтение» (Breakthrough Rapid Reading) — пошаговый курс школы Вуд.</li>
+        <li><b>Тим Феррисс</b> (PX Project), <b>Джим Квик</b> — популярные современные пересказы тех же приёмов.</li>
+      </ul><p>У этих авторов полезны дисциплина, указка и предпросмотр. Обещаниям 1000+ слов в минуту с полным пониманием верить не стоит: независимые проверки их не подтверждают.</p></div></details>
+    </div>
+
+    <h2>План на 4 недели</h2>
+    <div>
+      <details><summary>15 минут в день</summary><div class="body"><ol>
+        <li><b>Неделя 1. Точка отсчёта.</b> Три замера в разные дни. Каждый день: таблица Шульте ×3, указка 5 минут на комфортном темпе. Перед любым текстом — цель и предпросмотр.</li>
+        <li><b>Неделя 2. Ритм.</b> Указка на 10–15% выше комфортного, 7 минут. Поток слов 3 минуты. После каждого текста — пересказ в трёх предложениях.</li>
+        <li><b>Неделя 3. Гибкость.</b> Один и тот же материал: минута на скимминг, потом обычное чтение. Учитесь переключать режимы. Вспышка 3 минуты.</li>
+        <li><b>Неделя 4. Закрепление.</b> Читайте свои рабочие тексты через «Указку» со своим текстом. Контрольный замер. Реалистичная цель — плюс 20–40% эффективной скорости.</li>
+      </ol><p>И всё это время — 20–30 минут обычного чтения книг в день. Без объёма чтения упражнения эффекта не дают.</p></div></details>
+    </div>
+
+    <h2>Источники</h2>
+    <ul class="small" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+      <li><a href="https://doi.org/10.1177/1529100615623267" target="_blank" rel="noopener">Rayner et al. (2016). So Much to Read, So Little Time</a></li>
+      <li><a href="https://doi.org/10.1016/j.jml.2019.104047" target="_blank" rel="noopener">Brysbaert (2019). How many words do we read per minute?</a></li>
+      <li><a href="https://www.psychologicalscience.org/?p=97912" target="_blank" rel="noopener">Schotter, Rayner, Tran (2014). Приложения для скорочтения и понимание</a></li>
+      <li><a href="https://pubmed.ncbi.nlm.nih.gov/41277242/" target="_blank" rel="noopener">RSVP и СДВГ (2025), J. Int. Neuropsychological Society</a></li>
+      <li><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4835101/" target="_blank" rel="noopener">Пределы скорости чтения в RSVP</a></li>
+    </ul>
+  </section>
+
+  <!-- ============ PROGRESS ============ -->
+  <section id="v-progress" class="stack" hidden>
+    <h1>Прогресс</h1>
+    <div class="stats">
+      <div><b id="p-n">0</b><span>замеров</span></div>
+      <div><b id="p-best">—</b><span>лучшая эффективная</span></div>
+      <div><b id="p-days">0</b><span>дней с тренировкой</span></div>
+    </div>
+    <h2>Замеры скорости</h2>
+    <div class="hist" id="p-hist"></div>
+    <h2>Таблицы Шульте, лучшее время</h2>
+    <div class="hist" id="p-sch"></div>
+    <p class="small muted">Результаты хранятся только в этом браузере на этом устройстве.</p>
+    <div class="row"><button class="btn" id="p-clear">Стереть результаты</button><span class="small" id="p-clear-msg"></span></div>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="Разделы"><div>
+  <button data-go="test">Замер</button><button data-go="train">Тренажёры</button><button data-go="base">База</button><button data-go="progress">Прогресс</button>
+</div></nav>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const TEXTS=[
+{t:"Как движутся глаза",p:["Когда мы читаем, нам кажется, что взгляд плавно скользит по строке. На самом деле глаза движутся рывками. Короткий прыжок называется саккадой и длится всего две–три сотых секунды. Во время прыжка мы практически ничего не видим. Информация поступает только в моменты остановок, которые называют фиксациями. Каждая фиксация занимает в среднем около четверти секунды.","За одну остановку опытный читатель чётко различает примерно семь–восемь знаков и смутно угадывает очертания слов ещё на пятнадцать знаков вправо. Этот участок называют полем восприятия. Примерно каждое седьмое движение глаз направлено назад. Такие возвраты называют регрессиями. Долгое время их считали вредной привычкой, от которой нужно избавляться. Однако эксперименты показали обратное: когда читателю не дают вернуться к прочитанному, понимание заметно падает. Регрессия помогает мозгу исправить ошибку и уточнить смысл.","Главное открытие исследователей в том, что скорость чтения ограничивают не глаза. На сами движения уходит не больше десятой части времени. Остальное время мозг тратит на узнавание слов и сборку смысла. Поэтому тот, кто знает больше слов и лучше разбирается в теме, читает быстрее без всяких специальных упражнений для глаз."],
+q:[["Когда глаза получают информацию из текста?","Во время остановок — фиксаций","Во время прыжков — саккад","Непрерывно, пока взгляд скользит","Только при возврате назад"],["Сколько в среднем длится одна фиксация?","Около четверти секунды","Около двух секунд","Две–три сотых секунды","Около секунды"],["Что происходит, если запретить читателю возвращаться глазами назад?","Понимание заметно падает","Скорость растёт без потерь","Ничего не меняется","Глаза быстрее устают"],["Что, по тексту, ограничивает скорость чтения?","Узнавание слов и сборка смысла","Скорость движения глаз","Размер шрифта","Ширина строки"]]},
+{t:"Четыре уровня чтения",p:["В 1940 году американский философ Мортимер Адлер написал книгу «Как читать книги». Она переиздаётся до сих пор, потому что отвечает на простой вопрос: что значит читать хорошо. Адлер выделил четыре уровня. Первый называется элементарным чтением: человек просто понимает, что написано в предложении. Этому учат в школе.","Второй уровень — инспекционное чтение. Его задача состоит в том, чтобы за ограниченное время понять, о чём книга и стоит ли читать её целиком. Для этого изучают оглавление, предисловие и указатель, просматривают начало и конец глав. Адлер считал, что большинство людей пропускают этот шаг и напрасно начинают с первой страницы. Третий уровень — аналитическое чтение. Здесь читатель не торопится: он определяет главную мысль автора, находит его доводы и решает, согласен ли с ними.","Четвёртый, высший уровень называется синтопическим чтением. Читатель берёт несколько книг на одну тему и сравнивает их между собой, чтобы составить собственное мнение. Из этой схемы следует важный вывод: хороший читатель не тот, кто всегда читает быстро, а тот, кто умеет менять скорость. Одну книгу достаточно просмотреть за пятнадцать минут, другую стоит читать неделю с карандашом в руке."],
+q:[["Сколько уровней чтения выделил Адлер?","Четыре","Три","Пять","Семь"],["В чём задача инспекционного чтения?","Быстро понять, о чём книга и стоит ли её читать","Запомнить книгу наизусть","Найти ошибки автора","Прочитать книгу за один вечер"],["Что такое синтопическое чтение?","Сравнение нескольких книг на одну тему","Чтение вслух","Чтение с конца книги","Чтение только оглавления"],["Кого текст называет хорошим читателем?","Того, кто умеет менять скорость","Того, кто всегда читает быстро","Того, кто читает только с карандашом","Того, кто дочитывает каждую книгу"]]},
+{t:"Знания ускоряют чтение",p:["Представьте двух людей, которые читают одну и ту же статью о спорте. Первый читает слабо, но он страстный болельщик. Второй читает отлично, но в игре не разбирается. Кто лучше поймёт и запомнит текст? В известном эксперименте психологов Рехт и Лесли, проведённом в 1988 году, победили знатоки. Школьники, которые считались слабыми читателями, но хорошо знали бейсбол, пересказали текст о матче лучше сильных читателей, не знакомых с правилами.","Объяснение простое. Автор никогда не пишет всего: он рассчитывает, что читатель сам достроит пропущенное. Если знаний хватает, мозг делает это мгновенно. Если нет, приходится останавливаться, перечитывать и гадать. То же происходит со словами. Знакомое слово глаз узнаёт за доли секунды, а иногда вовсе перескакивает его. На редком слове взгляд задерживается намного дольше.","Поэтому самый надёжный способ ускорить чтение выглядит скучно: много читать, расширять словарь и накапливать знания о мире. Каждая прочитанная книга по теме делает следующую легче. Специалист читает профессиональный текст быстро не потому, что тренировал глаза, а потому, что почти всё в нём ему уже знакомо."],
+q:[["Кто лучше пересказал текст в эксперименте 1988 года?","Слабые читатели, знавшие игру","Сильные читатели, не знавшие игру","Обе группы одинаково","Те, кто читал медленнее всех"],["Почему знания по теме помогают понимать текст?","Читатель сам достраивает то, что автор пропустил","Знатоки читают более крупный шрифт","Знатоки пропускают половину текста","Им дают больше времени"],["Что происходит со взглядом на редком слове?","Он задерживается намного дольше","Он перескакивает слово","Он движется быстрее","Он возвращается к началу строки"],["Какой способ ускорить чтение текст называет самым надёжным?","Много читать и расширять словарь и знания","Тренировать мышцы глаз","Читать только заголовки","Не проговаривать слова про себя"]]}
+];
+/* ---------- storage ---------- */
+const KEY="temp-reader-v1";
+let S={rec:[],sch:{},fl:4,own:""};
+try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&typeof r==="object")S=Object.assign(S,r)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const dayKey=t=>{const d=new Date(t);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()};
+function log(o){o.d=Date.now();S.rec.push(o);if(S.rec.length>400)S.rec.shift();save();refresh()}
+const words=s=>s.trim().split(/\s+/).filter(Boolean);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+/* ---------- routing ---------- */
+const VIEWS=["test","train","base","progress"];
+function show(v){
+  if(!VIEWS.includes(v))v="test";
+  stopAll();
+  VIEWS.forEach(x=>$("v-"+x).hidden=x!==v);
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.dataset.go===v?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+  if(v==="progress")refresh();
+  window.scrollTo(0,0);
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b){const v=b.dataset.go;if(location.hash==="#"+v)show(v);else location.hash=v}});
+window.addEventListener("hashchange",()=>show(location.hash.slice(1)));
+
+/* ---------- dashboard / progress ---------- */
+function refresh(){
+  const tests=S.rec.filter(r=>r.k==="test");
+  const last=tests[tests.length-1];
+  $("s-eff").textContent=last?last.eff:"—";
+  $("s-sch").textContent=S.sch[5]?S.sch[5].toFixed(1):"—";
+  $("s-fl").textContent=S.fl;
+  const days=new Set(S.rec.map(r=>dayKey(r.d)));
+  let streak=0;for(let t=Date.now();days.has(dayKey(t));t-=864e5)streak++;
+  $("streak").textContent=streak?("дней подряд: "+streak):"";
+  $("p-n").textContent=tests.length;
+  const best=tests.reduce((m,r)=>Math.max(m,r.eff),0);
+  $("p-best").textContent=best||"—";
+  $("p-days").textContent=days.size;
+  const max=Math.max(best,1);
+  $("p-hist").innerHTML=tests.length?tests.slice(-12).reverse().map(r=>{const d=new Date(r.d);
+    return '<div class="h"><span class="muted">'+d.getDate()+"."+String(d.getMonth()+1).padStart(2,"0")+'</span><div class="bar"><i style="width:'+Math.round(r.eff/max*100)+'%"></i></div><b>'+r.eff+'</b></div><div class="small muted">'+r.wpm+" сл/мин · понимание "+r.comp+"%</div>"}).join("")
+    :'<p class="muted">Здесь появится история замеров. Первый занимает две минуты — он на вкладке «Замер».</p>';
+  const sk=Object.keys(S.sch).sort();
+  $("p-sch").innerHTML=sk.length?sk.map(k=>'<div class="h"><span class="muted">'+k+"×"+k+'</span><span></span><b>'+S.sch[k].toFixed(1)+" с</b></div>").join(""):'<p class="muted">Пока нет пройденных таблиц.</p>';
+}
+let clearArmed=false;
+$("p-clear").onclick=()=>{
+  if(!clearArmed){clearArmed=true;$("p-clear").textContent="Точно стереть";$("p-clear-msg").textContent="Нажмите ещё раз для подтверждения";return}
+  S={rec:[],sch:{},fl:4,own:S.own};save();refresh();clearArmed=false;$("p-clear").textContent="Стереть результаты";$("p-clear-msg").textContent="Стёрто";
+};
+
+/* ---------- speed test ---------- */
+let T={i:0,t0:0,wpm:0,ans:[]};
+TEXTS.forEach((x,i)=>{$("t-sel").add(new Option(x.t,i));$("src").add(new Option(x.t,i))});
+$("src").add(new Option("Свой текст","own"));
+function tStage(s){["home","read","quiz","res"].forEach(x=>$("t-"+x).hidden=x!==s);window.scrollTo(0,0)}
+$("t-start").onclick=()=>{T.i=+$("t-sel").value;const x=TEXTS[T.i];
+  $("t-text").innerHTML="<h3 style='font:700 20px var(--f-read);margin-bottom:.6em'>"+esc(x.t)+"</h3>"+x.p.map(p=>"<p>"+esc(p)+"</p>").join("");
+  tStage("read");T.t0=performance.now()};
+$("t-done").onclick=()=>{const x=TEXTS[T.i],min=(performance.now()-T.t0)/60000;
+  T.wpm=Math.round(words(x.p.join(" ")).length/Math.max(min,.01));T.ans=[];
+  $("t-qs").innerHTML="";
+  x.q.forEach((q,qi)=>{const d=document.createElement("div");d.className="q";d.innerHTML="<h3>"+(qi+1)+". "+esc(q[0])+"</h3>";
+    shuffle(q.slice(1)).forEach(o=>{const b=document.createElement("button");b.className="btn";b.textContent=o;
+      b.onclick=()=>{d.querySelectorAll("button").forEach(z=>z.classList.remove("sel"));b.classList.add("sel");T.ans[qi]=o;
+        $("t-check").disabled=T.ans.filter(Boolean).length<x.q.length};d.appendChild(b)});
+    $("t-qs").appendChild(d)});
+  $("t-check").disabled=true;tStage("quiz")};
+$("t-check").onclick=()=>{const x=TEXTS[T.i];const ok=x.q.filter((q,i)=>T.ans[i]===q[1]).length;
+  const comp=Math.round(ok/x.q.length*100),eff=Math.round(T.wpm*comp/100),w=T.wpm;
+  $("r-wpm").textContent=w;$("r-comp").textContent=comp+"%";$("r-eff").textContent=eff;
+  $("r-title").textContent=w<140?"Спокойный темп":w<220?"Типичный темп взрослого":w<330?"Быстрый читатель":w<450?"Очень быстро":"Это уже просмотр, а не чтение";
+  $("r-note").textContent=comp<75?"Понимание ниже 75% — темп для этого текста слишком высок. Сбавьте скорость: считается только то, что вы поняли."
+    :w<220?"Понимание хорошее. Попробуйте «Указку» на темпе "+(Math.round(w*1.15/10)*10)+" слов в минуту — это на 15% быстрее вашего."
+    :"Отличное сочетание скорости и понимания. Дальше растут не глаза, а словарь и навык выбирать режим чтения — загляните в «Базу».";
+  log({k:"test",wpm:w,comp:comp,eff:eff});tStage("res")};
+$("r-again").onclick=()=>{$("t-sel").value=(T.i+1)%TEXTS.length;tStage("home")};
+
+/* ---------- trainers: common ---------- */
+let cur="rsvp";
+function curWords(){const v=$("src").value;return words(v==="own"?($("own").value||"Вставьте свой текст в поле выше и нажмите «Сначала»."):TEXTS[+v].p.join(" "))}
+function curParas(){const v=$("src").value;return v==="own"?($("own").value||"Вставьте свой текст в поле выше.").split(/\n+/).filter(s=>s.trim()):TEXTS[+v].p}
+$("own").value=S.own||"";
+$("own").oninput=()=>{S.own=$("own").value.slice(0,60000);save()};
+$("own").onchange=()=>{rsReset();pcReset()};
+$("src").onchange=()=>{$("own").hidden=$("src").value!=="own";rsReset();pcReset()};
+$("tr-chips").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;stopAll();cur=b.dataset.tr;
+  document.querySelectorAll("#tr-chips .chip").forEach(c=>c.setAttribute("aria-pressed",c===b));
+  ["rsvp","pacer","schulte","flash"].forEach(x=>$("tr-"+x).hidden=x!==cur);
+  $("src-box").hidden=cur==="schulte"||cur==="flash";
+  if(cur==="schulte"&&!$("sc-grid").children.length)scNew();
+  if(cur==="pacer"&&!$("pc-text").children.length)pcReset()};
+function bind(id,fn){const el=$(id),o=$(id+"-o");const f=()=>{o.textContent=el.value;fn&&fn()};el.addEventListener("input",f);f()}
+function stopAll(){rsStop();pcStop();clearInterval(sc.tm);clearTimeout(fl.tm)}
+
+/* ---------- RSVP ---------- */
+const rs={w:[],i:0,tm:0,on:false,t0:0,n0:0};
+bind("rs-wpm");bind("rs-n");
+function rsShow(){const n=+$("rs-n").value,el=$("rs-word"),chunk=rs.w.slice(rs.i,rs.i+n);
+  if(!chunk.length)return;
+  if(n>1){el.className="word multi";el.textContent=chunk.join(" ")}
+  else{const w=chunk[0],core=w.replace(/^[^\p{L}\p{N}]+/u,""),off=w.length-core.length,L=core.replace(/[^\p{L}\p{N}]+$/u,"").length;
+    const p=off+(L<=1?0:L<=5?1:L<=9?2:L<=13?3:4);
+    el.className="word";el.innerHTML='<span class="l">'+esc(w.slice(0,p))+'</span><span class="p">'+esc(w[p]||"")+'</span><span class="r">'+esc(w.slice(p+1))+"</span>"}
+  $("rs-bar").style.width=(rs.i/rs.w.length*100)+"%"}
+function rsTick(){if(!rs.on)return;
+  if(rs.i>=rs.w.length){rsStop();$("rs-bar").style.width="100%";
+    const min=(performance.now()-rs.t0)/60000;if(rs.i-rs.n0>40)log({k:"rsvp",wpm:Math.round((rs.i-rs.n0)/min)});
+    $("rs-word").className="word multi";$("rs-word").textContent="Конец текста";rs.i=0;return}
+  rsShow();const n=+$("rs-n").value,chunk=rs.w.slice(rs.i,rs.i+n),lastW=chunk[chunk.length-1];
+  let k=chunk.length;if(/[.!?…]["»)]?$/.test(lastW))k+=.6;else if(/[,;:—–]$/.test(lastW))k+=.3;if(lastW.length>9)k+=.2;
+  rs.i+=n;rs.tm=setTimeout(rsTick,60000/+$("rs-wpm").value*k)}
+function rsStop(){rs.on=false;clearTimeout(rs.tm);$("rs-play").textContent="Старт"}
+function rsReset(){rsStop();rs.w=curWords();rs.i=0;$("rs-bar").style.width="0";$("rs-word").className="word multi";$("rs-word").textContent="Нажмите «Старт»"}
+$("rs-play").onclick=()=>{if(rs.on){rsStop();return}if(!rs.w.length||rs.i>=rs.w.length){rs.w=curWords();rs.i=0}
+  rs.on=true;rs.t0=performance.now();rs.n0=rs.i;$("rs-play").textContent="Пауза";rsTick()};
+$("rs-back").onclick=()=>{rs.i=Math.max(0,rs.i-10-(+$("rs-n").value));rs.n0=Math.min(rs.n0,rs.i);if(!rs.on)rsShow()};
+$("rs-reset").onclick=rsReset;
+
+/* ---------- pacer ---------- */
+const pc={sp:[],i:0,tm:0,on:false};
+bind("pc-wpm");bind("pc-n");
+function pcReset(){pcStop();$("pc-text").innerHTML=curParas().map(p=>"<p>"+words(p).map(w=>"<span>"+esc(w)+"</span>").join(" ")+"</p>").join("");
+  pc.sp=[...$("pc-text").querySelectorAll("span")];pc.i=0;$("pc-text").scrollTop=0}
+function pcStop(){pc.on=false;clearTimeout(pc.tm);$("pc-play").textContent="Старт"}
+function pcTick(){if(!pc.on)return;const n=+$("pc-n").value,box=$("pc-text");
+  pc.sp.forEach(s=>s.classList.remove("on"));
+  if(pc.i>=pc.sp.length){pcStop();pc.i=0;log({k:"pacer",wpm:+$("pc-wpm").value});return}
+  const ch=pc.sp.slice(pc.i,pc.i+n);ch.forEach(s=>s.classList.add("on"));
+  box.scrollTop=ch[0].offsetTop-box.clientHeight/2;
+  pc.i+=n;pc.tm=setTimeout(pcTick,60000/+$("pc-wpm").value*ch.length)}
+$("pc-play").onclick=()=>{if(pc.on){pcStop();return}if(!pc.sp.length)pcReset();pc.on=true;$("pc-play").textContent="Пауза";pcTick()};
+$("pc-reset").onclick=pcReset;
+
+/* ---------- Schulte ---------- */
+const sc={n:5,next:1,t0:0,tm:0,err:0};
+[3,4,5,6,7].forEach(n=>{const b=document.createElement("button");b.className="chip";b.textContent=n+"×"+n;b.setAttribute("aria-pressed",n===5);
+  b.onclick=()=>{sc.n=n;document.querySelectorAll("#sc-sizes .chip").forEach(c=>c.setAttribute("aria-pressed",c===b));scNew()};$("sc-sizes").appendChild(b)});
+function scNew(){clearInterval(sc.tm);const n=sc.n,g=$("sc-grid");sc.next=1;sc.err=0;sc.t0=0;
+  $("sc-next").textContent=1;$("sc-time").textContent="0.0";$("sc-err").textContent=0;$("sc-msg").textContent="Таймер запустится с первым нажатием.";
+  g.style.gridTemplateColumns="repeat("+n+",1fr)";g.innerHTML="";
+  shuffle(Array.from({length:n*n},(_,i)=>i+1)).forEach((v,idx)=>{const b=document.createElement("button");b.className="cell";b.textContent=v;
+    if(n%2&&idx===(n*n-1)/2)b.classList.add("center");
+    b.onclick=()=>{if(sc.next>n*n)return;
+      if(!sc.t0){sc.t0=performance.now();sc.tm=setInterval(()=>$("sc-time").textContent=((performance.now()-sc.t0)/1000).toFixed(1),100)}
+      if(v===sc.next){b.classList.add("hit");sc.next++;
+        if(sc.next>n*n){clearInterval(sc.tm);const t=(performance.now()-sc.t0)/1000;$("sc-time").textContent=t.toFixed(1);$("sc-next").textContent="✓";
+          const rec=!S.sch[n]||t<S.sch[n];if(rec)S.sch[n]=+t.toFixed(1);
+          $("sc-msg").textContent=(rec?"Новый личный рекорд: ":"Готово: ")+t.toFixed(1)+" с, ошибок "+sc.err+".";log({k:"schulte",n:n,t:+t.toFixed(1)})}
+        else $("sc-next").textContent=sc.next}
+      else{sc.err++;$("sc-err").textContent=sc.err;b.classList.add("miss");setTimeout(()=>b.classList.remove("miss"),300)}};
+    g.appendChild(b)})}
+$("sc-new").onclick=scNew;
+
+/* ---------- flash ---------- */
+const fl={tm:0,ans:"",run:0,busy:false};
+bind("fl-ms");
+function flUI(){$("fl-lvl").textContent=S.fl;$("fl-run").textContent=fl.run}
+function rnd(n){let s=String(1+Math.floor(Math.random()*9));while(s.length<n)s+=Math.floor(Math.random()*10);return s}
+function mutate(s){const a=s.split(""),i=Math.floor(Math.random()*a.length);
+  if(Math.random()<.5&&i<a.length-1&&a[i]!==a[i+1]){[a[i],a[i+1]]=[a[i+1],a[i]]}else{a[i]=String((+a[i]+1+Math.floor(Math.random()*8))%10);if(i===0&&a[0]==="0")a[0]="5"}
+  return a.join("")}
+$("fl-go").onclick=()=>{if(fl.busy)return;fl.busy=true;$("fl-opts").innerHTML="";fl.ans=rnd(S.fl);const box=$("fl-box");
+  box.textContent="+";
+  fl.tm=setTimeout(()=>{box.textContent=fl.ans;
+    fl.tm=setTimeout(()=>{box.textContent="?";const set=new Set([fl.ans]);let guard=0;while(set.size<4&&guard++<200)set.add(mutate(fl.ans));
+      shuffle([...set]).forEach(o=>{const b=document.createElement("button");b.className="btn";b.textContent=o;
+        b.onclick=()=>{if(!fl.busy)return;fl.busy=false;const ok=o===fl.ans;box.textContent=fl.ans;
+          $("fl-opts").querySelectorAll("button").forEach(z=>{z.disabled=true;if(z.textContent===fl.ans)z.classList.add("primary")});
+          if(ok){fl.run++;if(fl.run>=3){S.fl=Math.min(12,S.fl+1);fl.run=0}}else{fl.run=0;S.fl=Math.max(3,S.fl-1)}
+          save();flUI();log({k:"flash",n:S.fl,ok:ok})};
+        $("fl-opts").appendChild(b)})},+$("fl-ms").value)},600)};
+
+/* ---------- boot ---------- */
+flUI();refresh();rsReset();
+show(location.hash.slice(1)||"test");
+})();
+</script>
+<script>if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))</script>
+</body></html>
